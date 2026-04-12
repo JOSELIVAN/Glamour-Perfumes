@@ -9,6 +9,11 @@ const produtos = [
     nome: 'Aurora Eau de Parfum',
     descricao: 'Notas florais e amadeiradas para uma presença marcante em todas as ocasiões.',
     preco: 10.00,
+    imagenes: [
+      'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1517673132409-3f6a8e5a0088?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80'
+    ],
     imagem: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80',
     categoria: 'Feminino',
   },
@@ -17,6 +22,11 @@ const produtos = [
     nome: 'Noir Elegance',
     descricao: 'Mistura sofisticada de bergamota, baunilha e patchouli para um charme misterioso.',
     preco: 279.90,
+    imagenes: [
+      'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=800&q=80'
+    ],
     imagem: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80',
     categoria: 'Masculino',
   },
@@ -25,6 +35,11 @@ const produtos = [
     nome: 'Amour Rosa',
     descricao: 'Perfume delicado com toque frutado e romântico, ideal para momentos especiais.',
     preco: 219.90,
+    imagenes: [
+      'https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80'
+    ],
     imagem: 'https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=800&q=80',
     categoria: 'Unissex',
   },
@@ -33,6 +48,11 @@ const produtos = [
     nome: 'Midnight Velvet',
     descricao: 'A sensualidade da noite traduzida em uma fragrância marcante e envolvente.',
     preco: 299.90,
+    imagenes: [
+      'https://images.unsplash.com/photo-1517673132409-3f6a8e5a0088?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80'
+    ],
     imagem: 'https://images.unsplash.com/photo-1517673132409-3f6a8e5a0088?auto=format&fit=crop&w=800&q=80',
     categoria: 'Masculino',
   },
@@ -164,6 +184,7 @@ function App() {
   const [abaAtiva, setAbaAtiva] = useState('produtos');
   const [carrinho, setCarrinho] = useState(carregarLocalStorage('perfume_carrinho', []));
   const [pedidos, setPedidos] = useState(carregarLocalStorage('perfume_pedidos', []));
+  const [indicesImagenes, setIndicesImagenes] = useState({});
   const [mensagem, setMensagem] = useState('');
   const [mostrarCheckout, setMostrarCheckout] = useState(false);
   const [processandoPagamento, setProcessandoPagamento] = useState(false);
@@ -682,28 +703,67 @@ function App() {
 
   // Stripe checkout apenas - sem integrações antigas
 
-  // Renderizar produtos
+  // Renderizar productos com carrossel
   const renderProdutos = () => {
     return React.createElement('div', { className: 'produtos-grid' },
-      produtos.map(produto =>
-        React.createElement('div', { key: produto.id, className: 'produto-card' },
-          React.createElement('img', {
-            src: produto.imagem,
-            alt: produto.nome,
-            onError: (e) => e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZmZmIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+Q29kaWdvIFBJWPCvdGV4dD48L3N2Zz4='
-          }),
+      productos.map(producto => {
+        const indiceAtual = indicesImagenes[producto.id] || 0;
+        const proximoIndice = (indiceAtual + 1) % producto.imagenes.length;
+        const indiceAnterior = (indiceAtual - 1 + producto.imagenes.length) % producto.imagenes.length;
+        
+        return React.createElement('div', { key: producto.id, className: 'produto-card' },
+          // Carrossel de imagens
+          React.createElement('div', { className: 'carrossel-container' },
+            // Botão anterior
+            React.createElement('button', {
+              className: 'carrossel-btn carrossel-btn-prev',
+              onClick: () => setIndicesImagenes({...indicesImagenes, [producto.id]: indiceAnterior}),
+              title: 'Imagem anterior'
+            }, '❮'),
+            
+            // Container da imagem
+            React.createElement('div', { className: 'carrossel-image-wrapper' },
+              React.createElement('img', {
+                src: producto.imagenes[indiceAtual],
+                alt: `${producto.nome} - Imagem ${indiceAtual + 1}`,
+                className: 'carrossel-image',
+                onError: (e) => e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZmZmIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+Q29kaWdvIFBJWPCvdGV4dD48L3N2Zz4='
+              })
+            ),
+            
+            // Botão próximo
+            React.createElement('button', {
+              className: 'carrossel-btn carrossel-btn-next',
+              onClick: () => setIndicesImagenes({...indicesImagenes, [producto.id]: proximoIndice}),
+              title: 'Imagem seguinte'
+            }, '❯')
+          ),
+          
+          // Indicadores (pontos)
+          React.createElement('div', { className: 'carrossel-indicadores' },
+            producto.imagenes.map((_, index) =>
+              React.createElement('button', {
+                key: index,
+                className: `indicador ${index === indiceAtual ? 'ativo' : ''}`,
+                onClick: () => setIndicesImagenes({...indicesImagenes, [producto.id]: index}),
+                title: `Ir para imagem ${index + 1}`
+              })
+            )
+          ),
+          
+          // Informações do produto
           React.createElement('div', { className: 'producto-info' },
-            React.createElement('span', { className: 'categoria' }, produto.categoria),
-            React.createElement('h3', null, produto.nome),
-            React.createElement('p', null, produto.descricao),
-            React.createElement('div', { className: 'preco' }, formatarPreco(produto.preco)),
+            React.createElement('span', { className: 'categoria' }, producto.categoria),
+            React.createElement('h3', null, producto.nome),
+            React.createElement('p', null, producto.descricao),
+            React.createElement('div', { className: 'preco' }, formatarPreco(producto.preco)),
             React.createElement('button', {
               className: 'btn-adicionar',
-              onClick: () => adicionarAoCarrinho(produto)
+              onClick: () => adicionarAoCarrinho(producto)
             }, '🛒 Adicionar ao Carrinho')
           )
-        )
-      )
+        );
+      })
     );
   };
 
