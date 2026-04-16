@@ -1,111 +1,56 @@
-// Perfume Glamour - Integração com Stripe
-const { useState, useEffect } = React;
-const API_BASE = 'http://localhost:5500/api';
+const { useEffect, useState } = React;
+const h = React.createElement;
+const API_BASE = `${window.location.origin}/api`;
 
-// Dados dos produtos
-const produtos = [
-  {
-    id: 'aurora',
-    nome: 'Aurora Eau de Parfum',
-    descricao: 'Notas florais e amadeiradas para uma presença marcante em todas as ocasiões.',
-    preco: 10.00,
-    imagenes: [
-      'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1517673132409-3f6a8e5a0088?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80'
-    ],
-    imagem: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80',
-    categoria: 'Feminino',
-  },
-  {
-    id: 'noir',
-    nome: 'Noir Elegance',
-    descricao: 'Mistura sofisticada de bergamota, baunilha e patchouli para um charme misterioso.',
-    preco: 279.90,
-    imagenes: [
-      'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=800&q=80'
-    ],
-    imagem: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80',
-    categoria: 'Masculino',
-  },
-  {
-    id: 'amour',
-    nome: 'Amour Rosa',
-    descricao: 'Perfume delicado com toque frutado e romântico, ideal para momentos especiais.',
-    preco: 219.90,
-    imagenes: [
-      'https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80'
-    ],
-    imagem: 'https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=800&q=80',
-    categoria: 'Unissex',
-  },
-  {
-    id: 'midnight',
-    nome: 'Midnight Velvet',
-    descricao: 'A sensualidade da noite traduzida em uma fragrância marcante e envolvente.',
-    preco: 299.90,
-    imagenes: [
-      'https://images.unsplash.com/photo-1517673132409-3f6a8e5a0088?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80'
-    ],
-    imagem: 'https://images.unsplash.com/photo-1517673132409-3f6a8e5a0088?auto=format&fit=crop&w=800&q=80',
-    categoria: 'Masculino',
-  },
-];
-
-// Funções utilitárias
-const formatarPreco = (valor) => {
-  return `R$ ${valor.toFixed(2).replace('.', ',')}`;
-};
-
-const validarEmail = (email) => {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-};
-
-const validarCPF = (cpf) => {
-  cpf = cpf.replace(/[^\d]+/g, '');
-  if (cpf.length !== 11 || !!cpf.match(/(\d)\1{10}/)) return false;
-  let soma = 0;
-  let resto;
-  for (let i = 1; i <= 9; i++) {
-    soma = soma + parseInt(cpf.substring(i - 1, i)) * (11 - i);
-  }
-  resto = (soma * 10) % 11;
-  if (resto === 10 || resto === 11) resto = 0;
-  if (resto !== parseInt(cpf.substring(9, 10))) return false;
-  soma = 0;
-  for (let i = 1; i <= 10; i++) {
-    soma = soma + parseInt(cpf.substring(i - 1, i)) * (12 - i);
-  }
-  resto = (soma * 10) % 11;
-  if (resto === 10 || resto === 11) resto = 0;
-  if (resto !== parseInt(cpf.substring(10, 11))) return false;
-  return true;
-};
+const produtosIniciais = [];
 
 const PIX_CONFIG = {
   chave: '4504477c-1cb8-4789-9900-4e42f06d7a5c',
   nome: 'Jose Livan Hernandez Carvajal',
   cidade: 'Itupeva',
-  descricao: 'Pagamento de pedido Perfume Glamour',
-  cep: '13296-108'
+  descricao: 'Pagamento de pedido Perfume Glamour'
 };
 
-const emvTag = (id, value) => {
-  const length = value.length.toString().padStart(2, '0');
-  return `${id}${length}${value}`;
+const formatarPreco = (valor) => `R$ ${Number(valor || 0).toFixed(2).replace('.', ',')}`;
+const validarEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+const salvarLocalStorage = (chave, valor) => {
+  try {
+    localStorage.setItem(chave, JSON.stringify(valor));
+  } catch (error) {
+    console.warn('Nao foi possivel salvar no localStorage:', error);
+  }
 };
+
+const carregarLocalStorage = (chave, padrao) => {
+  try {
+    const valor = localStorage.getItem(chave);
+    return valor ? JSON.parse(valor) : padrao;
+  } catch (error) {
+    console.warn('Nao foi possivel carregar do localStorage:', error);
+    return padrao;
+  }
+};
+
+const sincronizarProdutosServidor = async (produtos) => {
+  try {
+    await fetchJson(`${API_BASE}/products`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(produtos)
+    });
+  } catch (error) {
+    console.warn('Falha ao sincronizar produtos com o servidor:', error.message || error);
+  }
+};
+
+const emvTag = (id, value) => `${id}${String(value.length).padStart(2, '0')}${value}`;
 
 const calcularCrc16 = (str) => {
   let crc = 0xFFFF;
-  for (let i = 0; i < str.length; i++) {
+  for (let i = 0; i < str.length; i += 1) {
     crc ^= str.charCodeAt(i) << 8;
-    for (let j = 0; j < 8; j++) {
+    for (let j = 0; j < 8; j += 1) {
       crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
       crc &= 0xFFFF;
     }
@@ -113,81 +58,97 @@ const calcularCrc16 = (str) => {
   return crc.toString(16).toUpperCase().padStart(4, '0');
 };
 
-const gerarPixPayload = (valor, config) => {
+const gerarPixPayload = (valor) => {
   const amount = Number(valor).toFixed(2);
-  const merchantAccountInformation =
+  const merchantInfo =
     emvTag('00', 'br.gov.bcb.pix') +
-    emvTag('01', config.chave) +
-    emvTag('02', config.descricao);
+    emvTag('01', PIX_CONFIG.chave) +
+    emvTag('02', PIX_CONFIG.descricao);
 
   const payload =
     emvTag('00', '01') +
-    emvTag('26', merchantAccountInformation) +
+    emvTag('26', merchantInfo) +
     emvTag('52', '0000') +
     emvTag('53', '986') +
     emvTag('54', amount) +
     emvTag('58', 'BR') +
-    emvTag('59', config.nome) +
-    emvTag('60', config.cidade) +
+    emvTag('59', PIX_CONFIG.nome) +
+    emvTag('60', PIX_CONFIG.cidade) +
     emvTag('62', emvTag('05', '***')) +
     '6304';
 
   return payload + calcularCrc16(payload);
 };
 
-const gerarPixQrUrl = (valor, config) => {
-  const payload = gerarPixPayload(valor, config);
-  return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(payload)}`;
+const gerarPixQrUrl = (valor) => `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(gerarPixPayload(valor))}`;
+
+const parseImagensLinhas = (texto) =>
+  String(texto || '')
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+const linhaParaUrlImagem = (linha) => {
+  const t = String(linha || '').trim();
+  if (!t) return '';
+  if (/^https?:\/\//i.test(t)) return t;
+  if (t.startsWith('/')) return t;
+  return `/img/${encodeURIComponent(t)}`;
 };
 
-const buscarPedidoServidor = async (orderId) => {
-  const response = await fetch(`${API_BASE}/order-status?order_id=${encodeURIComponent(orderId)}`);
-  if (!response.ok) {
-    throw new Error('No se pudo obtener el estado del pedido.');
+const normalizarImagensDoFormulario = (linhas) => linhas.map(linhaParaUrlImagem).filter(Boolean);
+
+const imagemCatalogoParaLinhaFormulario = (url) => {
+  const s = String(url || '');
+  if (s.startsWith('/img/')) {
+    const rest = s.slice(5);
+    try {
+      return decodeURIComponent(rest);
+    } catch {
+      return rest;
+    }
   }
-  return response.json();
+  return s;
 };
 
-const buscarPedidoPorSession = async (sessionId) => {
-  const response = await fetch(`${API_BASE}/order-by-session?session_id=${encodeURIComponent(sessionId)}`);
-  if (!response.ok) {
-    throw new Error('No se pudo obtener el pedido para la sesión Stripe.');
-  }
-  return response.json();
-};
+const fetchJson = async (url, options) => {
+  const response = await fetch(url, options);
+  const text = await response.text();
+  let data = {};
 
-const verEtiqueta = (orderId) => {
-  const url = `/order-label?order_id=${encodeURIComponent(orderId)}`;
-  window.open(url, '_blank');
-};
-
-const salvarLocalStorage = (chave, valor) => {
   try {
-    localStorage.setItem(chave, JSON.stringify(valor));
-  } catch (e) {
-    console.warn('Erro ao salvar no localStorage:', e);
+    data = text ? JSON.parse(text) : {};
+  } catch (error) {
+    throw new Error(text || 'Resposta invalida do servidor.');
   }
+
+  if (!response.ok) {
+    throw new Error(data.error || data.message || 'Erro na requisicao.');
+  }
+
+  return data;
 };
 
-const carregarLocalStorage = (chave, padrao = []) => {
-  try {
-    const item = localStorage.getItem(chave);
-    return item ? JSON.parse(item) : padrao;
-  } catch (e) {
-    console.warn('Erro ao carregar do localStorage:', e);
-    return padrao;
-  }
-};
-
-// Componente Principal
 function App() {
   const [abaAtiva, setAbaAtiva] = useState('produtos');
+  const [categoriaFiltro, setCategoriaFiltro] = useState('Todos');
+  const [produtosLista, setProdutosLista] = useState(() => carregarLocalStorage('perfume_produtos', produtosIniciais));
   const [carrinho, setCarrinho] = useState(carregarLocalStorage('perfume_carrinho', []));
   const [pedidos, setPedidos] = useState(carregarLocalStorage('perfume_pedidos', []));
-  const [indicesImagenes, setIndicesImagenes] = useState({});
+  const [indicesImagens, setIndicesImagens] = useState({});
   const [mensagem, setMensagem] = useState('');
   const [mostrarCheckout, setMostrarCheckout] = useState(false);
+  const [mostrarAdminLogin, setMostrarAdminLogin] = useState(false);
   const [processandoPagamento, setProcessandoPagamento] = useState(false);
+  const [processandoAdminLogin, setProcessandoAdminLogin] = useState(false);
+  const [metodoPagamento, setMetodoPagamento] = useState('pix');
+  const [parcelas, setParcelas] = useState(1);
+  const [etapaCheckout, setEtapaCheckout] = useState('resumo');
+  const [erroCheckout, setErroCheckout] = useState('');
+  const [cepError, setCepError] = useState('');
+  const [adminAutenticado, setAdminAutenticado] = useState(sessionStorage.getItem('perfume_admin_auth') === 'true');
+  const [adminErro, setAdminErro] = useState('');
+  const [adminAssets, setAdminAssets] = useState([]);
   const [dadosCompra, setDadosCompra] = useState({
     nome: '',
     email: '',
@@ -199,87 +160,151 @@ function App() {
     bairro: '',
     cidade: '',
     estado: '',
-    notificationType: 'email' // 'email', 'sms', 'both'
+    notificationType: 'email'
   });
-  const [erroCheckout, setErroCheckout] = useState('');
-  const [cepError, setCepError] = useState('');
-  const [metodoPagamento, setMetodoPagamento] = useState('pix'); // 'pix' or 'stripe'
-  const [parcelas, setParcelas] = useState(1);
-  const [etapaCheckout, setEtapaCheckout] = useState('resumo'); // 'resumo', 'dados', 'pagamento'
+  const [visualizacaoImagem, setVisualizacaoImagem] = useState(null);
+  const [produtoPreview, setProdutoPreview] = useState(null);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showFormModal, setShowFormModal] = useState(false);
 
-  const buscarEnderecoPorCep = async (cepValue) => {
-    const cep = String(cepValue || '').replace(/\D/g, '');
-    if (cep.length !== 8) {
-      setCepError('CEP inválido. Digite 8 dígitos.');
-      return;
-    }
-
-    setCepError('Buscando endereço...');
-    try {
-      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-      const data = await response.json();
-
-      if (data.erro) {
-        throw new Error('CEP não encontrado.');
-      }
-
-      setDadosCompra(prev => ({
-        ...prev,
-        logradouro: data.logradouro || '',
-        bairro: data.bairro || '',
-        cidade: data.localidade || '',
-        estado: data.uf || '',
-        complemento: data.complemento || '',
-        cep
-      }));
-      setCepError('');
-    } catch (error) {
-      setCepError(error.message || 'Não foi possível buscar o CEP.');
-      setDadosCompra(prev => ({
-        ...prev,
-        logradouro: '',
-        bairro: '',
-        cidade: '',
-        estado: '',
-        complemento: ''
-      }));
-    }
+  const abrirVisualizacaoImagem = (imagens, index, nome) => {
+    if (!Array.isArray(imagens) || !imagens.length) return;
+    const novoIndex = Math.max(0, Math.min(index, imagens.length - 1));
+    setVisualizacaoImagem({ imagens, index: novoIndex, nome });
   };
 
-  // Salvar carrinho quando muda
+  const fecharVisualizacaoImagem = () => {
+    setVisualizacaoImagem(null);
+  };
+
+  const navegarImagemPreview = (delta) => {
+    setVisualizacaoImagem((atual) => {
+      if (!atual || !Array.isArray(atual.imagens) || atual.imagens.length === 0) return atual;
+      const nextIndex = (atual.index + delta + atual.imagens.length) % atual.imagens.length;
+      return { ...atual, index: nextIndex };
+    });
+  };
+
+  const abrirProdutoPreview = (produto) => {
+    setProdutoPreview({ ...produto, indiceImagem: 0 });
+  };
+
+  const fecharProdutoPreview = () => {
+    setProdutoPreview(null);
+  };
+
+  const navegarProdutoPreview = (delta) => {
+    setProdutoPreview((atual) => {
+      if (!atual || !Array.isArray(atual.imagens) || atual.imagens.length === 0) return atual;
+      const nextIndex = (atual.indiceImagem + delta + atual.imagens.length) % atual.imagens.length;
+      return { ...atual, indiceImagem: nextIndex };
+    });
+  };
+
+  const [novoProduto, setNovoProduto] = useState({
+    nome: '',
+    categoria: '',
+    preco: '',
+    descricao: '',
+    imagens: []
+  });
+  const [produtoEmEdicaoId, setProdutoEmEdicaoId] = useState(null);
+  const [credenciaisAdmin, setCredenciaisAdmin] = useState({
+    username: '',
+    password: ''
+  });
+
+  const carregandoInicial = React.useRef(true);
+  const totalCarrinho = carrinho.reduce((acc, item) => acc + (item.preco * item.quantidade), 0);
+
+  useEffect(() => {
+    if (carregandoInicial.current) return;
+    salvarLocalStorage('perfume_produtos', produtosLista);
+    sincronizarProdutosServidor(produtosLista);
+  }, [produtosLista]);
+
+  useEffect(() => {
+    const localProducts = carregarLocalStorage('perfume_produtos', produtosIniciais);
+    if (localProducts && localProducts.length > 0) {
+      setProdutosLista(localProducts);
+    }
+
+    fetchJson(`${API_BASE}/products`)
+      .then((products) => {
+        if (Array.isArray(products) && products.length > 0) {
+          setProdutosLista(products);
+        }
+      })
+      .catch(() => {
+        if (!localProducts || !localProducts.length) {
+          setProdutosLista(produtosIniciais);
+        }
+      })
+      .finally(() => {
+        carregandoInicial.current = false;
+      });
+  }, []);
+
   useEffect(() => {
     salvarLocalStorage('perfume_carrinho', carrinho);
   }, [carrinho]);
 
-  // Salvar pedidos quando muda
   useEffect(() => {
     salvarLocalStorage('perfume_pedidos', pedidos);
   }, [pedidos]);
 
-  // Poll automático para pedidos en estado pendiente
+  useEffect(() => {
+    if (!dadosCompra.telefone && dadosCompra.notificationType !== 'email') {
+      setDadosCompra((atual) => ({ ...atual, notificationType: 'email' }));
+    }
+  }, [dadosCompra.telefone, dadosCompra.notificationType]);
+
+  useEffect(() => {
+    if (!adminAutenticado) return;
+
+    const carregarAssetsAdmin = async () => {
+      try {
+        const data = await fetchJson(`${API_BASE}/admin/assets`);
+        setAdminAssets(data.files || []);
+      } catch (error) {
+        setMensagem(error.message || 'Nao foi possivel listar os arquivos locais.');
+        limparMensagem();
+      }
+    };
+
+    carregarAssetsAdmin();
+  }, [adminAutenticado]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get('payment');
+    const sessionId = params.get('session_id');
+    const orderId = params.get('order_id');
+
+    if (payment === 'success' && sessionId && orderId) {
+      atualizarStatusPedido(sessionId, orderId);
+    }
+
+    if (payment === 'cancel') {
+      setMensagem('Pagamento cancelado. Voce pode tentar novamente ou escolher outro metodo.');
+    }
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(async () => {
-      const pedidosPendentes = pedidos.filter(pedido =>
-        pedido.id &&
-        pedido.status &&
-        pedido.status.toLowerCase().includes('aguardando')
+      const pendentes = pedidos.filter((pedido) =>
+        pedido.id && pedido.status && pedido.status.toLowerCase().includes('aguardando')
       );
 
-      if (pedidosPendentes.length === 0) {
-        return;
-      }
-
-      for (const pedido of pedidosPendentes) {
+      for (const pedido of pendentes) {
         try {
-          const serverOrder = await buscarPedidoServidor(pedido.id);
-          if (serverOrder && serverOrder.status !== pedido.status) {
-            setPedidos(current => current.map(item =>
-              item.id === serverOrder.id ? { ...item, ...serverOrder } : item
-            ));
-            setMensagem('✅ El pedido se ha actualizado automáticamente con el estado más reciente.');
+          const atualizado = await fetchJson(`${API_BASE}/order-status?order_id=${encodeURIComponent(pedido.id)}`);
+          if (atualizado.status !== pedido.status) {
+            setPedidos((atuais) => atuais.map((item) => item.id === atualizado.id ? { ...item, ...atualizado } : item));
+            setMensagem('Pedido atualizado com o estado mais recente.');
           }
         } catch (error) {
-          // Ignorar si el pedido no está registrado en el servidor o si la consulta falla.
+          // ignora falhas de polling
         }
       }
     }, 15000);
@@ -287,1083 +312,1315 @@ function App() {
     return () => clearInterval(interval);
   }, [pedidos]);
 
-  // Adicionar produto ao carrinho
-  const adicionarAoCarrinho = (produto) => {
-    setCarrinho(atual => {
-      const existente = atual.find(item => item.id === produto.id);
-      if (existente) {
-        return atual.map(item =>
-          item.id === produto.id
-            ? { ...item, quantidade: item.quantidade + 1 }
-            : item
-        );
+  const limparMensagem = () => window.setTimeout(() => setMensagem(''), 3200);
+
+  const atualizarCampo = (campo, valor) => {
+    setDadosCompra((atual) => ({ ...atual, [campo]: valor }));
+  };
+
+  const atualizarNovoProduto = (campo, valor) => {
+    setNovoProduto((atual) => ({ ...atual, [campo]: valor }));
+  };
+
+  const alternarArquivoLocalNoFormulario = (arquivo) => {
+    setNovoProduto((atual) => {
+      const lista = Array.isArray(atual.imagens) ? [...atual.imagens] : parseImagensLinhas(String(atual.imagens));
+      const idx = lista.indexOf(arquivo);
+      if (idx >= 0) {
+        lista.splice(idx, 1);
+      } else {
+        lista.push(arquivo);
       }
-      return [...atual, { ...produto, quantidade: 1 }];
+      return { ...atual, imagens: lista };
     });
-    setMensagem(`✅ ${produto.nome} adicionado ao carrinho!`);
-    setTimeout(() => setMensagem(''), 3000);
   };
 
-  // Remover produto do carrinho
-  const removerDoCarrinho = (produtoId) => {
-    setCarrinho(atual => atual.filter(item => item.id !== produtoId));
+  const resetFormularioProduto = () => {
+    setNovoProduto({
+      nome: '',
+      categoria: '',
+      preco: '',
+      descricao: '',
+      imagens: []
+    });
+    setProdutoEmEdicaoId(null);
   };
 
-  // Alterar quantidade
+  const atualizarCredencialAdmin = (campo, valor) => {
+    setCredenciaisAdmin((atual) => ({ ...atual, [campo]: valor }));
+  };
+
+  const adicionarAoCarrinho = (produto) => {
+    setCarrinho((atual) => {
+      const existente = atual.find((item) => item.id === produto.id);
+      if (existente) {
+        return atual.map((item) => item.id === produto.id ? { ...item, quantidade: item.quantidade + 1 } : item);
+      }
+      return [...atual, { ...produto, imagem: produto.imagens[0], quantidade: 1 }];
+    });
+    setMensagem(`${produto.nome} adicionado ao carrinho.`);
+    limparMensagem();
+  };
+
   const alterarQuantidade = (produtoId, delta) => {
-    setCarrinho(atual =>
-      atual.map(item =>
-        item.id === produtoId
-          ? { ...item, quantidade: Math.max(1, item.quantidade + delta) }
-          : item
-      )
-    );
+    setCarrinho((atual) => atual.map((item) =>
+      item.id === produtoId ? { ...item, quantidade: Math.max(1, item.quantidade + delta) } : item
+    ));
   };
 
-  // === GESTIÓN DE PEDIDOS ===
+  const removerDoCarrinho = (produtoId) => {
+    setCarrinho((atual) => atual.filter((item) => item.id !== produtoId));
+  };
 
-  // Eliminar pedido
-  const eliminarPedido = async (pedidoId) => {
-    if (!confirm('¿Está seguro de que desea eliminar este pedido? Esta acción no se puede deshacer.')) {
+  const adicionarProdutoAoCatalogo = () => {
+    const nome = novoProduto.nome.trim();
+    const categoria = novoProduto.categoria.trim() || 'Colecao';
+    const descricao = novoProduto.descricao.trim();
+    const preco = Number(String(novoProduto.preco).replace(',', '.'));
+    const linhas = Array.isArray(novoProduto.imagens) ? novoProduto.imagens : parseImagensLinhas(novoProduto.imagens);
+    const imagens = normalizarImagensDoFormulario(linhas);
+
+    if (!nome || !descricao || !imagens.length || Number.isNaN(preco) || preco <= 0) {
+      setMensagem('Preencha nome, descricao, preco e ao menos uma imagem (URL https ou nome de arquivo na pasta img/).');
+      limparMensagem();
       return;
     }
 
-    try {
-      const response = await fetch(`${API_BASE}/orders/${pedidoId}`, {
-        method: 'DELETE'
-      });
+    const idBase = nome
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') || `perfume-${Date.now()}`;
 
-      if (response.ok) {
-        setPedidos(atual => atual.filter(pedido => pedido.id !== pedidoId));
-        setMensagem('✅ Pedido eliminado exitosamente.');
-      } else {
-        const errorData = await response.json();
-        setMensagem(`❌ Error: ${errorData.error || 'Error al eliminar pedido.'}`);
-      }
-    } catch (error) {
-      console.error('Error al eliminar pedido:', error);
-      setMensagem('❌ Error de conexión. No se pudo eliminar el pedido.');
-    }
+    const id = produtosLista.some((item) => item.id === idBase) ? `${idBase}-${Date.now()}` : idBase;
 
-    setTimeout(() => setMensagem(''), 3000);
-  };
-
-  // Cancelar pedido
-  const cancelarPedido = async (pedidoId) => {
-    if (!confirm('¿Está seguro de que desea cancelar este pedido?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_BASE}/orders/${pedidoId}/cancel`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPedidos(atual => atual.map(pedido =>
-          pedido.id === pedidoId
-            ? data.order
-            : pedido
-        ));
-        setMensagem('✅ Pedido cancelado exitosamente.');
-      } else {
-        const errorData = await response.json();
-        setMensagem(`❌ Error: ${errorData.error || 'Error al cancelar pedido.'}`);
-      }
-    } catch (error) {
-      console.error('Error al cancelar pedido:', error);
-      setMensagem('❌ Error de conexión. No se pudo cancelar el pedido.');
-    }
-
-    setTimeout(() => setMensagem(''), 3000);
-  };
-
-  // Marcar pedido como completado
-  const completarPedido = async (pedidoId) => {
-    try {
-      const response = await fetch(`${API_BASE}/orders/${pedidoId}/complete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPedidos(atual => atual.map(pedido =>
-          pedido.id === pedidoId
-            ? data.order
-            : pedido
-        ));
-        setMensagem('✅ Pedido marcado como completado.');
-      } else {
-        const errorData = await response.json();
-        setMensagem(`❌ Error: ${errorData.error || 'Error al completar pedido.'}`);
-      }
-    } catch (error) {
-      console.error('Error al completar pedido:', error);
-      setMensagem('❌ Error de conexión. No se pudo completar el pedido.');
-    }
-
-    setTimeout(() => setMensagem(''), 3000);
-  };
-
-  // Reenviar confirmación
-  const reenviarConfirmacion = async (pedidoId) => {
-    try {
-      const response = await fetch(`${API_BASE}/orders/${pedidoId}/resend-confirmation`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      if (response.ok) {
-        setMensagem('✅ Confirmación reenviada exitosamente.');
-      } else {
-        const errorData = await response.json();
-        setMensagem(`❌ Error: ${errorData.error || 'Error al reenviar confirmación.'}`);
-      }
-    } catch (error) {
-      console.error('Error al reenviar confirmación:', error);
-      setMensagem('❌ Error de conexión al reenviar confirmación.');
-    }
-
-    setTimeout(() => setMensagem(''), 3000);
-  };
-
-  // Calcular total do carrinho
-  const totalCarrinho = carrinho.reduce((total, item) => total + item.preco * item.quantidade, 0);
-
-  // Finalizar compra
-  const finalizarCompra = async () => {
-    const nome = dadosCompra.nome?.trim() || '';
-    const email = dadosCompra.email?.trim() || '';
-    const endereco = {
-      cep: dadosCompra.cep?.replace(/\D/g, ''),
-      logradouro: dadosCompra.logradouro?.trim() || '',
-      numero: dadosCompra.numero?.trim() || '',
-      complemento: dadosCompra.complemento?.trim() || '',
-      bairro: dadosCompra.bairro?.trim() || '',
-      cidade: dadosCompra.cidade?.trim() || '',
-      estado: dadosCompra.estado?.trim() || ''
+    const produto = {
+      id,
+      nome,
+      categoria,
+      descricao,
+      preco,
+      imagens
     };
 
-    if (!nome || nome.split(' ').length < 2) {
-      setErroCheckout('❌ Por favor, insira seu nome completo (nome e sobrenome).');
+    const novoCatalogo = [produto, ...produtosLista];
+    setProdutosLista(novoCatalogo);
+    sincronizarProdutosServidor(novoCatalogo);
+    resetFormularioProduto();
+    setMensagem('Produto adicionado ao catalogo.');
+    limparMensagem();
+  };
+
+  const iniciarEdicaoProduto = (produto) => {
+    setProdutoEmEdicaoId(produto.id);
+    setNovoProduto({
+      nome: produto.nome,
+      categoria: produto.categoria,
+      preco: String(produto.preco),
+      descricao: produto.descricao,
+      imagens: (produto.imagens || []).map(imagemCatalogoParaLinhaFormulario)
+    });
+    setShowAdminPanel(false); // Cerrar el panel de administración al editar
+    setAbaAtiva('produtos');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const salvarEdicaoProduto = () => {
+    if (!produtoEmEdicaoId) {
+      adicionarProdutoAoCatalogo();
       return;
     }
 
-    if (!validarEmail(email)) {
-      setErroCheckout('❌ Por favor, insira um e-mail válido.');
+    const nome = novoProduto.nome.trim();
+    const categoria = novoProduto.categoria.trim() || 'Colecao';
+    const descricao = novoProduto.descricao.trim();
+    const preco = Number(String(novoProduto.preco).replace(',', '.'));
+    const linhas = Array.isArray(novoProduto.imagens) ? novoProduto.imagens : parseImagensLinhas(novoProduto.imagens);
+    const imagens = normalizarImagensDoFormulario(linhas);
+
+    if (!nome || !descricao || !imagens.length || Number.isNaN(preco) || preco <= 0) {
+      setMensagem('Preencha nome, descricao, preco e ao menos uma imagem (URL https ou nome de arquivo na pasta img/).');
+      limparMensagem();
       return;
     }
 
-    if (!endereco.cep || endereco.cep.length !== 8 || !endereco.logradouro || !endereco.numero || !endereco.bairro || !endereco.cidade || !endereco.estado) {
-      setErroCheckout('❌ Por favor, complete o endereço com CEP, rua, número, bairro, cidade e estado.');
+    const catalogoAtualizado = produtosLista.map((produto) =>
+      produto.id === produtoEmEdicaoId
+        ? { ...produto, nome, categoria, descricao, preco, imagens }
+        : produto
+    );
+    setProdutosLista(catalogoAtualizado);
+    sincronizarProdutosServidor(catalogoAtualizado);
+    setCarrinho((atual) => atual.map((item) =>
+      item.id === produtoEmEdicaoId
+        ? { ...item, nome, categoria, descricao, preco, imagens, imagem: imagens[0] }
+        : item
+    ));
+    resetFormularioProduto();
+    setMensagem('Produto atualizado.');
+    limparMensagem();
+  };
+
+  const eliminarProdutoDoCatalogo = (produtoId) => {
+    const catalogoAtualizado = produtosLista.filter((item) => item.id !== produtoId);
+    setProdutosLista(catalogoAtualizado);
+    sincronizarProdutosServidor(catalogoAtualizado);
+    setCarrinho((atual) => atual.filter((item) => item.id !== produtoId));
+    setIndicesImagens((atual) => {
+      const copia = { ...atual };
+      delete copia[produtoId];
+      return copia;
+    });
+    if (produtoEmEdicaoId === produtoId) {
+      resetFormularioProduto();
+    }
+    setMensagem('Produto removido do site.');
+    limparMensagem();
+  };
+
+  const restaurarCatalogoBase = () => {
+    setProdutosLista(produtosIniciais);
+    sincronizarProdutosServidor(produtosIniciais);
+    resetFormularioProduto();
+    setMensagem('Catalogo restaurado para a configuracao base.');
+    limparMensagem();
+  };
+
+  const abrirAdmin = () => {
+    if (adminAutenticado) {
+      setAbaAtiva('produtos');
+      return;
+    }
+    setAdminErro('');
+    setMostrarAdminLogin(true);
+  };
+
+  const fecharAdminLogin = () => {
+    setMostrarAdminLogin(false);
+    setAdminErro('');
+    setCredenciaisAdmin({ username: '', password: '' });
+  };
+
+  const autenticarAdmin = async () => {
+    if (!credenciaisAdmin.username.trim() || !credenciaisAdmin.password.trim()) {
+      setAdminErro('Informe usuario e senha.');
       return;
     }
 
-    if (carrinho.length === 0) {
-      setErroCheckout('❌ Seu carrinho está vazio.');
+    setProcessandoAdminLogin(true);
+    setAdminErro('');
+
+    try {
+      await fetchJson(`${API_BASE}/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: credenciaisAdmin.username.trim(),
+          password: credenciaisAdmin.password
+        })
+      });
+
+      sessionStorage.setItem('perfume_admin_auth', 'true');
+      setAdminAutenticado(true);
+      setAbaAtiva('produtos');
+      fecharAdminLogin();
+    } catch (error) {
+      setAdminErro(error.message || 'Nao foi possivel autenticar.');
+    } finally {
+      setProcessandoAdminLogin(false);
+    }
+  };
+
+  const sairDoAdmin = () => {
+    sessionStorage.removeItem('perfume_admin_auth');
+    setAdminAutenticado(false);
+    setAbaAtiva('produtos');
+  };
+
+  const buscarEnderecoPorCep = async (cepValue) => {
+    const cep = String(cepValue || '').replace(/\D/g, '');
+    if (cep.length !== 8) {
+      setCepError('Digite um CEP valido com 8 digitos.');
       return;
     }
 
-    setProcessandoPagamento(true);
+    setCepError('Buscando endereco...');
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await response.json();
+
+      if (data.erro) {
+        throw new Error('CEP nao encontrado.');
+      }
+
+      setDadosCompra((atual) => ({
+        ...atual,
+        cep,
+        logradouro: data.logradouro || '',
+        bairro: data.bairro || '',
+        cidade: data.localidade || '',
+        estado: data.uf || '',
+        complemento: data.complemento || atual.complemento
+      }));
+      setCepError('');
+    } catch (error) {
+      setCepError(error.message || 'Nao foi possivel buscar o CEP.');
+    }
+  };
+
+  const validarCheckout = () => {
+    const nome = dadosCompra.nome.trim();
+    const email = dadosCompra.email.trim();
+    const cep = dadosCompra.cep.replace(/\D/g, '');
+
+    if (!nome || nome.split(' ').length < 2) return 'Informe nome e sobrenome.';
+    if (!validarEmail(email)) return 'Informe um e-mail valido.';
+    if (!cep || cep.length !== 8 || !dadosCompra.logradouro.trim() || !dadosCompra.numero.trim() || !dadosCompra.bairro.trim() || !dadosCompra.cidade.trim() || !dadosCompra.estado.trim()) {
+      return 'Complete o endereco com CEP, rua, numero, bairro, cidade e estado.';
+    }
+    if (!carrinho.length) return 'Seu carrinho esta vazio.';
+    return '';
+  };
+
+  const construirCliente = () => ({
+    nome: dadosCompra.nome.trim(),
+    email: dadosCompra.email.trim(),
+    telefone: dadosCompra.telefone.trim(),
+    notificationType: dadosCompra.telefone.trim() ? dadosCompra.notificationType : 'email',
+    endereco: {
+      cep: dadosCompra.cep.replace(/\D/g, ''),
+      logradouro: dadosCompra.logradouro.trim(),
+      numero: dadosCompra.numero.trim(),
+      complemento: dadosCompra.complemento.trim(),
+      bairro: dadosCompra.bairro.trim(),
+      cidade: dadosCompra.cidade.trim(),
+      estado: dadosCompra.estado.trim()
+    }
+  });
+
+  const itensPedido = () => carrinho.map((item) => ({
+    id: item.id,
+    nome: item.nome,
+    quantidade: item.quantidade,
+    preco: item.preco
+  }));
+
+  const resetCheckout = () => {
+    setCarrinho([]);
+    setMostrarCheckout(false);
+    setEtapaCheckout('resumo');
+    setDadosCompra({
+      nome: '',
+      email: '',
+      telefone: '',
+      cep: '',
+      logradouro: '',
+      numero: '',
+      complemento: '',
+      bairro: '',
+      cidade: '',
+      estado: '',
+      notificationType: 'email'
+    });
+    setCepError('');
     setErroCheckout('');
-    setMensagem('⏳ Processando pagamento...');
+  };
+
+  const finalizarCompra = async () => {
+    const erro = validarCheckout();
+    if (erro) {
+      setErroCheckout(erro);
+      return;
+    }
+
+    setErroCheckout('');
+    setProcessandoPagamento(true);
+
+    const cliente = construirCliente();
+    const itens = itensPedido();
 
     try {
       if (metodoPagamento === 'pix') {
-        // Pagamento via Pix
-        const qrCode = gerarPixQrUrl(totalCarrinho, PIX_CONFIG);
-        let orderId = `PED-${Date.now()}`;
-
-        try {
-          const registerResponse = await fetch(`${API_BASE}/register-order`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              cliente: { nome, email, telefone: dadosCompra.telefone, endereco },
-              itens: carrinho.map(item => ({
-                id: item.id,
-                nome: item.nome,
-                quantidade: item.quantidade,
-                preco: item.preco
-              })),
-              total: totalCarrinho,
-              metodoPagamento: 'pix',
-              parcelas: 1,
-              chavePix: PIX_CONFIG.chave,
-              qrCode
-            })
-          });
-
-          const registerData = await registerResponse.json();
-          if (!registerResponse.ok) {
-            throw new Error(registerData.error || 'Não foi possível registrar o pedido.');
-          }
-          orderId = registerData.orderId || orderId;
-        } catch (regError) {
-          console.warn('Registro de pedido no servidor falhou:', regError);
-        }
+        const qrCode = gerarPixQrUrl(totalCarrinho);
+        const registro = await fetchJson(`${API_BASE}/register-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cliente,
+            itens,
+            total: totalCarrinho,
+            metodoPagamento: 'pix',
+            parcelas: 1,
+            chavePix: PIX_CONFIG.chave,
+            qrCode
+          })
+        });
 
         const novoPedido = {
-          id: orderId,
-          cliente: { nome, email, telefone: dadosCompra.telefone, endereco },
-          itens: [...carrinho],
+          id: registro.orderId,
+          cliente,
+          itens,
           total: totalCarrinho,
           status: 'Aguardando Pagamento Pix',
           data: new Date().toLocaleString('pt-BR'),
           metodoPagamento: 'pix',
+          parcelas: 1,
           chavePix: PIX_CONFIG.chave,
           qrCode
         };
 
-        setPedidos(atual => [novoPedido, ...atual]);
-        setCarrinho([]);
-        setDadosCompra({ nome: '', email: '', telefone: '', cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', notificationType: 'email' });
-        setCepError('');
-        setMostrarCheckout(false);
-        setMensagem('✅ Pedido criado com Pix. Use o QR Code ou chave para pagar.');
-        setProcessandoPagamento(false);
-      } else {
-        // Pagamento via Stripe
-        const items = carrinho.map(item => ({
-          title: item.nome,
-          unit_price: Number(item.preco),
-          quantity: Number(item.quantidade),
-          picture_url: item.imagem,
-          currency_id: 'BRL'
-        }));
-
-        const response = await fetch(`${API_BASE}/create-checkout-session`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            items,
-            customer_email: email,
-            installments: parcelas,
-            order: {
-              cliente: { nome, email, telefone: dadosCompra.telefone, endereco },
-              itens: carrinho.map(item => ({
-                id: item.id,
-                nome: item.nome,
-                quantidade: item.quantidade,
-                preco: item.preco
-              })),
-              total: totalCarrinho,
-              parcelas: parcelas
-            }
-          })
-        });
-
-        const responseText = await response.text();
-        let responseData = {};
-        try {
-          responseData = responseText ? JSON.parse(responseText) : {};
-        } catch (parseError) {
-          console.error('Erro ao parsear JSON:', responseText, parseError);
-          throw new Error(`Resposta inválida do servidor: ${responseText}`);
-        }
-
-        if (!response.ok) {
-          console.error('Stripe session creation failed:', response.status, responseData, responseText);
-          
-          let serverError = responseData.error || responseData.message || response.statusText || responseText || 'Erro ao criar sessão de checkout';
-          
-          if (response.status === 405) {
-            serverError = '❌ Erro de comunicação com o servidor (405). Verifique se o servidor está rodando e tente novamente.';
-          } else if (response.status === 403 || response.status === 401) {
-            serverError = '❌ Acesso negado. Verifique a configuração do servidor.';
-          } else if (response.status === 500) {
-            serverError = `❌ Erro no servidor: ${serverError}`;
-          } else if (response.status === 0 || !response.status) {
-            serverError = '❌ Não foi possível conectar ao servidor. Verifique se ele está rodando.';
-          }
-          
-          throw new Error(serverError);
-        }
-
-        if (!responseData.url) {
-          console.error('Stripe session created sem URL:', responseData);
-          throw new Error('Sessão Stripe criada, mas a URL de pagamento não foi retornada. Verifique o servidor.');
-        }
-
-        const novoPedido = {
-          id: responseData.orderId || `PED-${Date.now()}`,
-          cliente: { nome, email, telefone: dadosCompra.telefone, endereco },
-          itens: [...carrinho],
-          total: totalCarrinho,
-          status: 'Aguardando Pagamento',
-          data: new Date().toLocaleString('pt-BR'),
-          stripeSessionId: responseData.sessionId,
-          paymentUrl: responseData.url,
-          metodoPagamento: 'stripe',
-          parcelas: parcelas
-        };
-
-        setPedidos(atual => [novoPedido, ...atual]);
-        setCarrinho([]);
-        setDadosCompra({ nome: '', email: '', telefone: '', cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', notificationType: 'email' });
-        setCepError('');
-        setMostrarCheckout(false);
-        setMensagem('⏳ Pedido criado. Você será redirecionado para o Stripe para concluir o pagamento. O email de confirmação será enviado somente quando o pagamento for concluído.');
-        setErroCheckout('');
-        setProcessandoPagamento(false);
-        setTimeout(() => {
-          window.location.href = responseData.url;
-        }, 1000);
+        setPedidos((atual) => [novoPedido, ...atual]);
+        resetCheckout();
+        setMensagem('Pedido criado. Use o QR Code ou a chave Pix para pagar.');
+        limparMensagem();
+        return;
       }
 
-    } catch (error) {
-      console.error('❌ Error:', error);
-      let mensagemErro = `❌ Erro: ${error.message}`;
-      
-      if (error.message.includes('Failed to fetch')) {
-        mensagemErro = '❌ Erro de conexão. Verifique se o servidor está rodando em http://localhost:5502';
-      } else if (error.message.includes('Method Not Allowed')) {
-        mensagemErro = '❌ Erro na requisição. Tente atualizar a página e fazer a compra novamente.';
-      }
-      
-      setErroCheckout(mensagemErro);
-      setProcessandoPagamento(false);
-    }
-  };
-
-  const atualizarStatusPedido = async (sessionId, orderId) => {
-    try {
-      // Para success, confirmar directamente usando session_id y order_id
-      const confirmResponse = await fetch(`${API_BASE}/confirm-stripe-payment`, {
+      const stripe = await fetchJson(`${API_BASE}/create-checkout-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, order_id: orderId })
+        body: JSON.stringify({
+          customer_email: cliente.email,
+          installments: parcelas,
+          items: carrinho.map((item) => ({
+            title: item.nome,
+            unit_price: Number(item.preco),
+            quantity: Number(item.quantidade),
+            picture_url: item.imagem,
+            currency_id: 'BRL'
+          })),
+          order: {
+            cliente,
+            itens,
+            total: totalCarrinho,
+            parcelas
+          }
+        })
       });
 
-      if (confirmResponse.ok) {
-        console.log('✅ Pagamento confirmado no servidor');
-        const resultData = await confirmResponse.json();
-        
-        // Actualizar pedido local
-        setPedidos(pedidos => pedidos.map(pedido =>
-          pedido.id === orderId ? { ...pedido, ...resultData, status: 'Pago' } : pedido
-        ));
+      const novoPedido = {
+        id: stripe.orderId || `PED-${Date.now()}`,
+        cliente,
+        itens,
+        total: totalCarrinho,
+        status: 'Aguardando Pagamento',
+        data: new Date().toLocaleString('pt-BR'),
+        metodoPagamento: 'stripe',
+        parcelas,
+        stripeSessionId: stripe.sessionId,
+        paymentUrl: stripe.url
+      };
 
-        setMensagem('✅ Pagamento confirmado com sucesso! O email será enviado em instantes para o endereço informado no checkout.');
-      } else {
-        const errorData = await confirmResponse.json();
-        console.error('Erro ao confirmar:', errorData);
-
-        if (errorData.error && errorData.error.includes('Pago Stripe no confirmado')) {
-          setMensagem('⏳ Pagamento ainda não confirmado. Aguarde alguns minutos e clique em Verificar Pagamento novamente. O email será enviado somente após o pagamento aprovado.');
-        } else {
-          setMensagem(`❌ ${errorData.error || 'Não foi possível confirmar o pagamento no servidor.'}`);
-        }
-      }
+      setPedidos((atual) => [novoPedido, ...atual]);
+      resetCheckout();
+      setMensagem('Pedido criado. Redirecionando para o checkout Stripe.');
+      limparMensagem();
+      window.setTimeout(() => {
+        window.location.href = stripe.url;
+      }, 900);
     } catch (error) {
-      console.error('Erro ao confirmar pagamento:', error);
-      setMensagem(`❌ Erro ao confirmar pagamento: ${error.message}`);
+      setErroCheckout(error.message || 'Nao foi possivel finalizar o pedido.');
+    } finally {
+      setProcessandoPagamento(false);
     }
   };
 
   const confirmarPixPedido = async (orderId) => {
     try {
-      const response = await fetch(`${API_BASE}/confirm-pix`, {
+      const data = await fetchJson(`${API_BASE}/confirm-pix`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_id: orderId })
       });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Erro ao confirmar pagamento Pix');
-      }
-
-      setPedidos(current => current.map(pedido =>
-        pedido.id === orderId ? { ...pedido, ...data } : pedido
-      ));
-      setMensagem('✅ Pagamento Pix confirmado. Pedido actualizado.');
+      setPedidos((atual) => atual.map((pedido) => pedido.id === orderId ? { ...pedido, ...data } : pedido));
+      setMensagem('Pagamento Pix confirmado.');
+      limparMensagem();
     } catch (error) {
-      console.error('Erro ao confirmar Pix:', error);
-      setMensagem(`❌ Não foi possível confirmar o Pix: ${error.message}`);
+      setMensagem(error.message || 'Nao foi possivel confirmar o Pix.');
+      limparMensagem();
     }
   };
 
-  // Efeito para verificar retorno do Stripe
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const paymentStatus = urlParams.get('payment');
-    const sessionId = urlParams.get('session_id');
-    const orderId = urlParams.get('order_id');
+  const atualizarStatusPedido = async (sessionId, orderId) => {
+    try {
+      const data = await fetchJson(`${API_BASE}/confirm-stripe-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, order_id: orderId })
+      });
 
-    if (paymentStatus === 'success' && sessionId && orderId) {
-      atualizarStatusPedido(sessionId, orderId);
-    } else if (paymentStatus === 'cancel') {
-      setMensagem('❌ Pagamento cancelado. Se desejar, tente novamente ou escolha outro método de pagamento.');
+      setPedidos((atual) => {
+        const existe = atual.some((pedido) => pedido.id === data.id);
+        if (!existe) return [data, ...atual];
+        return atual.map((pedido) => pedido.id === data.id ? { ...pedido, ...data } : pedido);
+      });
+
+      setMensagem('Pagamento confirmado.');
+      limparMensagem();
+    } catch (error) {
+      setMensagem(error.message || 'Nao foi possivel verificar o pagamento Stripe.');
+      limparMensagem();
     }
-  }, []);
+  };
 
-  // Stripe checkout apenas - sem integrações antigas
+  const cancelarPedido = async (pedidoId) => {
+    try {
+      const data = await fetchJson(`${API_BASE}/orders/${pedidoId}/cancel`, { method: 'POST' });
+      setPedidos((atual) => atual.map((pedido) => pedido.id === pedidoId ? data.order : pedido));
+      setMensagem('Pedido cancelado.');
+      limparMensagem();
+    } catch (error) {
+      setMensagem(error.message || 'Nao foi possivel cancelar o pedido.');
+      limparMensagem();
+    }
+  };
 
-  // Renderizar productos com carrossel
+  const completarPedido = async (pedidoId) => {
+    try {
+      const data = await fetchJson(`${API_BASE}/orders/${pedidoId}/complete`, { method: 'POST' });
+      setPedidos((atual) => atual.map((pedido) => pedido.id === pedidoId ? data.order : pedido));
+      setMensagem('Pedido marcado como completado.');
+      limparMensagem();
+    } catch (error) {
+      setMensagem(error.message || 'Nao foi possivel completar o pedido.');
+      limparMensagem();
+    }
+  };
+
+  const reenviarConfirmacao = async (pedidoId) => {
+    try {
+      await fetchJson(`${API_BASE}/orders/${pedidoId}/resend-confirmation`, { method: 'POST' });
+      setMensagem('Confirmacao reenviada.');
+      limparMensagem();
+    } catch (error) {
+      setMensagem(error.message || 'Nao foi possivel reenviar a confirmacao.');
+      limparMensagem();
+    }
+  };
+
+  const eliminarPedido = async (pedidoId) => {
+    try {
+      await fetchJson(`${API_BASE}/orders/${pedidoId}`, { method: 'DELETE' });
+      setPedidos((atual) => atual.filter((pedido) => pedido.id !== pedidoId));
+      setMensagem('Pedido eliminado.');
+      limparMensagem();
+    } catch (error) {
+      setMensagem(error.message || 'Nao foi possivel eliminar o pedido.');
+      limparMensagem();
+    }
+  };
+
+  const verEtiqueta = (orderId) => {
+    window.open(`/order-label?order_id=${encodeURIComponent(orderId)}`, '_blank');
+  };
+
   const renderProdutos = () => {
-    return React.createElement('div', { className: 'produtos-grid' },
-      productos.map(producto => {
-        const indiceAtual = indicesImagenes[producto.id] || 0;
-        const proximoIndice = (indiceAtual + 1) % producto.imagenes.length;
-        const indiceAnterior = (indiceAtual - 1 + producto.imagenes.length) % producto.imagenes.length;
-        
-        return React.createElement('div', { key: producto.id, className: 'produto-card' },
-          // Carrossel de imagens
-          React.createElement('div', { className: 'carrossel-container' },
-            // Botão anterior
-            React.createElement('button', {
-              className: 'carrossel-btn carrossel-btn-prev',
-              onClick: () => setIndicesImagenes({...indicesImagenes, [producto.id]: indiceAnterior}),
-              title: 'Imagem anterior'
-            }, '❮'),
-            
-            // Container da imagem
-            React.createElement('div', { className: 'carrossel-image-wrapper' },
-              React.createElement('img', {
-                src: producto.imagenes[indiceAtual],
-                alt: `${producto.nome} - Imagem ${indiceAtual + 1}`,
-                className: 'carrossel-image',
-                onError: (e) => e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZmZmIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LXNpemU9IjE0IiBmaWxsPSIjMDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+Q29kaWdvIFBJWPCvdGV4dD48L3N2Zz4='
-              })
+    const categorias = ['Todos', ...new Set(produtosLista.map(p => p.categoria))];
+    const produtosFiltrados = categoriaFiltro === 'Todos' 
+      ? produtosLista 
+      : produtosLista.filter(p => p.categoria === categoriaFiltro);
+
+    return h(React.Fragment, null,
+    h('section', { className: 'page-hero' },
+      h('div', { className: 'hero-copy' },
+        h('span', { className: 'hero-kicker' }, 'Curadoria olfativa'),
+        h('h2', null, 'Perfumes com presenca de boutique.'),
+        h('p', null, 'Uma selecao enxuta, visual editorial e checkout direto para transformar a loja em algo mais premium e menos generico.'),
+        h('div', { className: 'hero-actions' },
+          h('button', { className: 'btn-primary', onClick: () => setAbaAtiva('carrinho') }, `Ver carrinho (${carrinho.length})`),
+          h('button', { className: 'btn-secondary', onClick: () => window.scrollTo({ top: 720, behavior: 'smooth' }) }, 'Explorar colecao'),
+          adminAutenticado && h('button', { className: 'btn-secondary', onClick: () => setShowAdminPanel(!showAdminPanel) }, 'Gerir loja')
+        )
+      )
+    ),
+    h('section', null,
+      h('div', { className: 'section-heading' },
+        h('div', null,
+          h('span', { className: 'section-kicker' }, 'Colecao selecionada'),
+          h('h3', null, 'Fragrancias para noite, assinatura e presente')
+        ),
+      ),
+      h('div', { className: 'filtros-categoria' },
+        categorias.map(cat => h('button', {
+          key: cat,
+          className: `filter-btn ${categoriaFiltro === cat ? 'active' : ''}`,
+          onClick: () => setCategoriaFiltro(cat)
+        }, cat))
+      ),
+      produtosFiltrados.length === 0 ?
+        h('div', { className: 'produtos-vazio' },
+          h('h3', null, 'Nenhum produto disponivel'),
+          h('p', null, 'A galeria esta vazia. Clique em restaurar para carregar os itens iniciais ou adicione novos produtos na area restrita.'),
+          adminAutenticado ? null : h('button', { className: 'btn-secondary', onClick: restaurarCatalogoBase }, 'Restaurar vitrine base')
+        ) :
+        h('div', { className: 'produtos-grid' },
+          produtosFiltrados.map((produto) => {
+            const indiceAtual = indicesImagens[produto.id] || 0;
+            const proximo = (indiceAtual + 1) % produto.imagens.length;
+            const anterior = (indiceAtual - 1 + produto.imagens.length) % produto.imagens.length;
+
+            return h('article', { key: produto.id, className: 'produto-card', onClick: () => abrirProdutoPreview(produto) },
+              h('div', { className: 'carrossel-container' },
+              h('button', {
+                className: 'carrossel-btn carrossel-btn-prev',
+                title: 'Imagem anterior',
+                onClick: (e) => {
+                  e.stopPropagation();
+                  setIndicesImagens((atual) => ({ ...atual, [produto.id]: anterior }));
+                }
+              }, '<'),
+              h('div', { className: 'carrossel-image-wrapper' },
+                h('img', {
+                  className: 'carrossel-image',
+                  src: produto.imagens[indiceAtual],
+                  alt: `${produto.nome} - imagem ${indiceAtual + 1}`,
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    abrirVisualizacaoImagem(produto.imagens, indiceAtual, produto.nome);
+                  }
+                })
+              ),
+              h('button', {
+                className: 'carrossel-btn carrossel-btn-next',
+                title: 'Imagem seguinte',
+                onClick: (e) => {
+                  e.stopPropagation();
+                  setIndicesImagens((atual) => ({ ...atual, [produto.id]: proximo }));
+                }
+              }, '>')
             ),
-            
-            // Botão próximo
-            React.createElement('button', {
-              className: 'carrossel-btn carrossel-btn-next',
-              onClick: () => setIndicesImagenes({...indicesImagenes, [producto.id]: proximoIndice}),
-              title: 'Imagem seguinte'
-            }, '❯')
-          ),
-          
-          // Indicadores (pontos)
-          React.createElement('div', { className: 'carrossel-indicadores' },
-            producto.imagenes.map((_, index) =>
-              React.createElement('button', {
-                key: index,
-                className: `indicador ${index === indiceAtual ? 'ativo' : ''}`,
-                onClick: () => setIndicesImagenes({...indicesImagenes, [producto.id]: index}),
-                title: `Ir para imagem ${index + 1}`
-              })
+            h('div', { className: 'carrossel-indicadores' },
+              produto.imagens.map((_, index) =>
+                h('button', {
+                  key: `${produto.id}-${index}`,
+                  className: `indicador ${index === indiceAtual ? 'ativo' : ''}`,
+                  title: `Ir para imagem ${index + 1}`,
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    setIndicesImagens((atual) => ({ ...atual, [produto.id]: index }));
+                  }
+                })
+              )
+            ),
+            h('div', { className: 'producto-info' },
+              h('span', { className: 'categoria' }, produto.categoria),
+              h('h3', null, produto.nome),
+              h('p', null, produto.descricao),
+              h('div', { className: 'preco-area' },
+                h('span', { className: 'preco-de' }, 'A partir de:'),
+                h('div', { className: 'preco' }, formatarPreco(produto.preco))
+              ),
+              h('div', { className: 'parcela' }, `ou 6x de ${formatarPreco(produto.preco / 6)} Sem juros`),
+              h('button', { className: 'btn-adicionar', onClick: (e) => {
+                e.stopPropagation();
+                adicionarAoCarrinho(produto);
+              } }, 'ESCOLHER')
             )
-          ),
-          
-          // Informações do produto
-          React.createElement('div', { className: 'producto-info' },
-            React.createElement('span', { className: 'categoria' }, producto.categoria),
-            React.createElement('h3', null, producto.nome),
-            React.createElement('p', null, producto.descricao),
-            React.createElement('div', { className: 'preco' }, formatarPreco(producto.preco)),
-            React.createElement('button', {
-              className: 'btn-adicionar',
-              onClick: () => adicionarAoCarrinho(producto)
-            }, '🛒 Adicionar ao Carrinho')
-          )
-        );
-      })
+          );
+        })
+      )
+    )
     );
   };
 
-  // Renderizar carrinho
+  const renderPreviewImagem = () => {
+    if (!visualizacaoImagem) return null;
+
+    return h('div', {
+      className: 'image-preview-overlay',
+      onClick: fecharVisualizacaoImagem
+    },
+      h('div', {
+        className: 'image-preview-modal',
+        onClick: (event) => event.stopPropagation()
+      },
+        h('button', {
+          className: 'image-preview-close',
+          onClick: fecharVisualizacaoImagem,
+          type: 'button'
+        }, 'x'),
+        h('button', {
+          className: 'image-preview-nav image-preview-prev',
+          type: 'button',
+          onClick: () => navegarImagemPreview(-1)
+        }, '<'),
+        h('div', { className: 'image-preview-content' },
+          h('img', {
+            className: 'image-preview-img',
+            src: visualizacaoImagem.imagens[visualizacaoImagem.index],
+            alt: `${visualizacaoImagem.nome} - imagem ${visualizacaoImagem.index + 1}`
+          }),
+          h('p', { className: 'image-preview-caption' }, `${visualizacaoImagem.nome} • ${visualizacaoImagem.index + 1} / ${visualizacaoImagem.imagens.length}`)
+        ),
+        h('button', {
+          className: 'image-preview-nav image-preview-next',
+          type: 'button',
+          onClick: () => navegarImagemPreview(1)
+        }, '>')
+      )
+    );
+  };
+
+  const renderProdutoPreview = () => {
+    if (!produtoPreview) return null;
+
+    const imagens = produtoPreview.imagens || [];
+    const imagemAtual = imagens[produtoPreview.indiceImagem] || '';
+
+    return h('div', {
+      className: 'produto-preview-overlay',
+      onClick: fecharProdutoPreview
+    },
+      h('div', {
+        className: 'produto-preview-modal',
+        onClick: (event) => event.stopPropagation()
+      },
+        h('button', {
+          className: 'produto-preview-close',
+          onClick: fecharProdutoPreview,
+          type: 'button'
+        }, 'x'),
+        h('div', { className: 'produto-preview-container' },
+          h('div', { className: 'produto-preview-imagens' },
+            h('div', { className: 'produto-preview-carrossel' },
+              imagens.length > 1 ? h('button', {
+                className: 'preview-nav preview-prev',
+                onClick: () => navegarProdutoPreview(-1),
+                type: 'button'
+              }, '<') : null,
+              h('img', {
+                className: 'preview-imagem-principal',
+                src: imagemAtual,
+                alt: produtoPreview.nome
+              }),
+              imagens.length > 1 ? h('button', {
+                className: 'preview-nav preview-next',
+                onClick: () => navegarProdutoPreview(1),
+                type: 'button'
+              }, '>') : null
+            ),
+            imagens.length > 1 ? h('p', { className: 'imagem-contador' }, `${produtoPreview.indiceImagem + 1} / ${imagens.length}`) : null
+          ),
+          h('div', { className: 'produto-preview-info' },
+            h('h2', null, produtoPreview.nome),
+            h('p', { className: 'categoria-tag' }, produtoPreview.categoria || 'Perfume'),
+            h('p', { className: 'descricao-completa' }, produtoPreview.descricao || 'Fragrância exclusiva'),
+            h('div', { className: 'preco-bloque' },
+              h('span', { className: 'preco-desde' }, `A partir de: ${formatarPreco(produtoPreview.preco)}`),
+              h('span', { className: 'preco-parcelas' }, `ou 6x de ${formatarPreco(produtoPreview.preco / 6)} Sem juros`)
+            ),
+            h('button', {
+              className: 'btn-primary preview-add-cart',
+              onClick: () => {
+                adicionarAoCarrinho(produtoPreview);
+                fecharProdutoPreview();
+              }
+            }, 'ESCOLHER')
+          )
+        )
+      )
+    );
+  };
+
+  const renderFormProdutoModal = () => {
+    return h('div', {
+      className: 'form-modal-overlay'
+    },
+      h('div', {
+        className: 'form-modal-content',
+        onClick: (e) => e.stopPropagation()
+      },
+        h('div', { className: 'form-modal-header' },
+          h('h3', null, produtoEmEdicaoId ? 'Editar Produto' : 'Novo Produto'),
+          h('button', {
+            className: 'form-modal-close',
+            onClick: () => {
+              setShowFormModal(false);
+              if (!produtoEmEdicaoId) resetFormularioProduto();
+              if (produtoEmEdicaoId) setShowAdminPanel(true); // Reabrir panel si estaba editando
+            }
+          }, '×')
+        ),
+        h('div', { className: 'form-modal-body' },
+          h('div', { className: 'form-row' },
+            h('div', { className: 'form-group' },
+              h('label', null, '📦 Nome do Produto *'),
+              h('input', {
+                value: novoProduto.nome,
+                onChange: (e) => atualizarNovoProduto('nome', e.target.value),
+                placeholder: 'Ex.: Amber Reserve',
+                maxLength: 100
+              })
+            ),
+            h('div', { className: 'form-group' },
+              h('label', null, '🏷️ Categoria *'),
+              h('input', {
+                value: novoProduto.categoria,
+                onChange: (e) => atualizarNovoProduto('categoria', e.target.value),
+                placeholder: 'Feminino, Masculino, Unissex...',
+                maxLength: 50
+              })
+            )
+          ),
+          h('div', { className: 'form-row' },
+            h('div', { className: 'form-group' },
+              h('label', null, '💰 Preço (R$) *'),
+              h('input', {
+                type: 'number',
+                value: novoProduto.preco,
+                onChange: (e) => atualizarNovoProduto('preco', e.target.value),
+                placeholder: '249.90',
+                step: '0.01',
+                min: '0'
+              })
+            )
+          ),
+          h('div', { className: 'form-group' },
+            h('label', null, '📝 Descrição *'),
+            h('textarea', {
+              value: novoProduto.descricao,
+              onChange: (e) => atualizarNovoProduto('descricao', e.target.value),
+              placeholder: 'Notas olfativas, mood e ocasiões de uso...',
+              maxLength: 500,
+              rows: 4
+            })
+          ),
+          h('div', { className: 'form-group' },
+            h('label', null, '🖼️ Imagens *'),
+            h('p', { className: 'form-hint' }, 'Uma URL (https://) ou nome de arquivo por linha'),
+            h('textarea', {
+              value: (Array.isArray(novoProduto.imagens) ? novoProduto.imagens : []).join('\\n'),
+              onChange: (e) => atualizarNovoProduto('imagens', parseImagensLinhas(e.target.value)),
+              placeholder: 'https://example.com/img.jpg\\nautra-url.jpg\\nfoto-local.png',
+              rows: 6
+            })
+          ),
+          adminAssets.length ? h('div', { className: 'form-group' },
+            h('label', null, '📂 Arquivos locais (img/)'),
+            h('div', { className: 'admin-asset-chips' },
+              adminAssets.map((file) => {
+                const selecionado = (Array.isArray(novoProduto.imagens) ? novoProduto.imagens : []).includes(file);
+                return h('button', {
+                  type: 'button',
+                  key: file,
+                  className: `admin-asset-chip${selecionado ? ' admin-asset-chip--on' : ''}`,
+                  onClick: () => alternarArquivoLocalNoFormulario(file)
+                }, file);
+              })
+            )
+          ) : null
+        ),
+        h('div', { className: 'form-modal-footer' },
+          h('button', {
+            className: 'btn-secondary',
+            onClick: () => {
+              setShowFormModal(false);
+              if (!produtoEmEdicaoId) resetFormularioProduto();
+              if (produtoEmEdicaoId) setShowAdminPanel(true); // Reabrir panel si estaba editando
+            }
+          }, 'Cancelar'),
+          h('button', {
+            className: 'btn-primary',
+            onClick: () => {
+              if (produtoEmEdicaoId) {
+                salvarEdicaoProduto();
+              } else {
+                adicionarProdutoAoCatalogo();
+              }
+              setShowFormModal(false);
+              if (produtoEmEdicaoId) setShowAdminPanel(true); // Reabrir panel después de guardar edición
+            }
+          }, produtoEmEdicaoId ? 'Salvar Mudanças' : 'Criar Produto')
+        )
+      )
+    );
+  };
+
+  const renderAdminPanelNovo = () => {
+    return h('div', {
+      className: 'admin-panel-overlay',
+      onClick: () => setShowAdminPanel(false)
+    },
+      h('div', {
+        className: 'admin-panel-content',
+        onClick: (e) => e.stopPropagation()
+      },
+        h('div', { className: 'admin-panel-header' },
+          h('div', null,
+            h('h2', null, '⚙️ Painel de Administração'),
+            h('p', null, 'Gerencie sua coleção de produtos de forma fácil e rápida')
+          ),
+          h('button', {
+            className: 'admin-panel-close',
+            onClick: () => setShowAdminPanel(false)
+          }, '×')
+        ),
+        h('div', { className: 'admin-panel-body' },
+          h('div', { className: 'admin-stats' },
+            h('div', { className: 'admin-stat-card'},
+              h('span', { className: 'stat-value' }, produtosLista.length),
+              h('span', { className: 'stat-label' }, '-- Produtos')
+            ),
+            h('div', { className: 'admin-stat-card' },
+              h('span', { className: 'stat-value' }, formatarPreco(produtosLista.reduce((sum, p) => sum + p.preco, 0))),
+              h('span', { className: 'stat-label' }, ' --  Valor total')
+            )
+          ),
+          h('div', { className: 'admin-actions' },
+            h('button', {
+              className: 'btn-primary admin-btn-large',
+              onClick: () => {
+                resetFormularioProduto();
+                setShowFormModal(true);
+              }
+            }, '➕ Novo Produto'),
+            h('button', {
+              className: 'btn-secondary admin-btn-large',
+              onClick: restaurarCatalogoBase
+            }, '🔄 Restaurar Catálogo Base')
+          ),
+          h('div', { className: 'admin-products-section' },
+            h('h3', null, '📦 Seus Produtos'),
+            produtosLista.length === 0
+              ? h('div', { className: 'admin-empty-state' },
+                  h('p', null, 'Nenhum produto ainda.'),
+                  h('button', {
+                    className: 'btn-primary',
+                    onClick: () => setShowFormModal(true)
+                  }, 'Criar primeiro produto')
+                )
+              : h('div', { className: 'admin-products-grid' },
+                  produtosLista.map((produto) =>
+                    h('div', { key: `admin-${produto.id}`, className: 'admin-product-card' },
+                      h('div', { className: 'admin-product-image' },
+                        h('img', {
+                          src: produto.imagens[0],
+                          alt: produto.nome,
+                          onError: (e) => e.target.src = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22400%22%3E%3Crect fill=%22%23f0f0f0%22 width=%22300%22 height=%22400%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22%3EImagem não encontrada%3C/text%3E%3C/svg%3E'
+                        })
+                      ),
+                      h('div', { className: 'admin-product-info' },
+                        h('h4', null, produto.nome),
+                        h('p', { className: 'admin-product-category' }, `${produto.categoria} • ${formatarPreco(produto.preco)}`),
+                        h('p', { className: 'admin-product-desc' }, produto.descricao.substring(0, 80) + '...'),
+                        h('div', { className: 'admin-product-actions' },
+                          h('button', {
+                            className: 'btn-secondary btn-small',
+                            onClick: () => {
+                              iniciarEdicaoProduto(produto);
+                              setShowFormModal(true);
+                            }
+                          }, '✏️ Editar'),
+                          h('button', {
+                            className: 'btn-secondary btn-small btn-danger',
+                            onClick: () => {
+                              if (confirm(`Deseja realmente eliminar "${produto.nome}"?`)) {
+                                eliminarProdutoDoCatalogo(produto.id);
+                              }
+                            }
+                          }, '🗑️ Deletar')
+                        )
+                      )
+                    )
+                  )
+                )
+          )
+        )
+      )
+    );
+  };
+
   const renderCarrinho = () => {
-    if (carrinho.length === 0) {
-      return React.createElement('div', { className: 'carrinho-vazio' },
-        React.createElement('h3', null, 'Seu carrinho está vazio'),
-        React.createElement('p', null, 'Adicione alguns perfumes incríveis!'),
-        React.createElement('button', {
-          className: 'btn-primary',
-          onClick: () => setAbaAtiva('produtos')
-        }, 'Ver Produtos')
+    if (!carrinho.length) {
+      return h('section', { className: 'carrinho-vazio' },
+        h('h3', null, 'Seu carrinho esta vazio'),
+        h('p', null, 'Adicione uma fragrancia para comecar o checkout.'),
+        h('button', { className: 'btn-primary', onClick: () => setAbaAtiva('produtos') }, 'Ver produtos')
       );
     }
 
-    return React.createElement('div', { className: 'carrinho-content' },
-      React.createElement('div', { className: 'carrinho-itens' },
-        carrinho.map(item =>
-          React.createElement('div', { key: item.id, className: 'carrinho-item' },
-            React.createElement('div', { className: 'item-info' },
-              React.createElement('h4', null, item.nome),
-              React.createElement('p', null, `${formatarPreco(item.preco)} x ${item.quantidade}`)
+    return h('section', { className: 'carrinho-content' },
+      h('div', { className: 'carrinho-itens' },
+        carrinho.map((item) =>
+          h('div', { key: item.id, className: 'carrinho-item' },
+            h('div', { className: 'item-info' },
+              h('h4', null, item.nome),
+              h('p', null, `${formatarPreco(item.preco)} x ${item.quantidade}`)
             ),
-            React.createElement('div', { className: 'item-controls' },
-              React.createElement('button', {
-                onClick: () => alterarQuantidade(item.id, -1)
-              }, '-'),
-              React.createElement('span', null, item.quantidade),
-              React.createElement('button', {
-                onClick: () => alterarQuantidade(item.id, 1)
-              }, '+'),
-              React.createElement('button', {
-                className: 'btn-remover',
-                onClick: () => removerDoCarrinho(item.id)
-              }, '🗑️')
+            h('div', { className: 'item-controls' },
+              h('button', { onClick: () => alterarQuantidade(item.id, -1) }, '-'),
+              h('span', null, item.quantidade),
+              h('button', { onClick: () => alterarQuantidade(item.id, 1) }, '+'),
+              h('button', { className: 'btn-remover', onClick: () => removerDoCarrinho(item.id) }, 'x')
             ),
-            React.createElement('div', { className: 'item-total' },
-              formatarPreco(item.preco * item.quantidade)
-            )
+            h('div', { className: 'item-total' }, formatarPreco(item.preco * item.quantidade))
           )
         )
       ),
-      React.createElement('div', { className: 'carrinho-resumo' },
-        React.createElement('div', { className: 'resumo-total' },
-          React.createElement('strong', null, `Total: ${formatarPreco(totalCarrinho)}`)
-        ),
-        React.createElement('button', {
+      h('aside', { className: 'carrinho-resumo' },
+        h('span', { className: 'section-kicker' }, 'Resumo'),
+        h('h3', null, 'Checkout pronto'),
+        h('p', null, 'Frete e notificacoes sao confirmados nas etapas seguintes.'),
+        h('div', { className: 'resumo-total' }, h('strong', null, `Total: ${formatarPreco(totalCarrinho)}`)),
+        h('button', {
           className: 'btn-checkout',
           onClick: () => {
             setMostrarCheckout(true);
             setEtapaCheckout('resumo');
           }
-        }, 'Finalizar Compra')
+        }, 'Finalizar compra')
       )
     );
   };
 
-  // Renderizar resumo do pedido
-  const renderResumoPedido = () => {
-    return React.createElement(React.Fragment, null,
-      React.createElement('div', { className: 'checkout-resumo' },
-        React.createElement('h3', null, 'Produtos Selecionados'),
-        React.createElement('div', { className: 'resumo-itens' },
-          carrinho.map(item =>
-            React.createElement('div', { key: item.id, className: 'resumo-item' },
-              React.createElement('div', { className: 'item-detalhes' },
-                React.createElement('span', { className: 'item-nome' }, item.nome),
-                React.createElement('span', { className: 'item-quantidade' }, `x${item.quantidade}`)
-              ),
-              React.createElement('span', { className: 'item-preco' }, formatarPreco(item.preco * item.quantidade))
-            )
+  const renderResumoPedido = () => h(React.Fragment, null,
+    h('div', { className: 'checkout-resumo' },
+      h('h3', null, 'Resumo do pedido'),
+      h('div', { className: 'resumo-itens' },
+        carrinho.map((item) =>
+          h('div', { key: item.id, className: 'resumo-item' },
+            h('div', { className: 'item-detalhes' },
+              h('span', { className: 'item-nome' }, item.nome),
+              h('span', { className: 'item-quantidade' }, `x${item.quantidade}`)
+            ),
+            h('span', { className: 'item-preco' }, formatarPreco(item.preco * item.quantidade))
           )
-        ),
-        React.createElement('div', { className: 'resumo-total' },
-          React.createElement('strong', null, `Total: ${formatarPreco(totalCarrinho)}`)
         )
       ),
-      React.createElement('div', { className: 'checkout-footer' },
-        React.createElement('button', {
-          className: 'btn-secondary',
-          onClick: () => setMostrarCheckout(false)
-        }, 'Voltar ao Carrinho'),
-        React.createElement('button', {
-          className: 'btn-primary',
-          onClick: () => setEtapaCheckout('dados')
-        }, 'Continuar para Dados de Entrega')
-      )
-    );
-  };
+      h('div', { className: 'resumo-total' }, `Total: ${formatarPreco(totalCarrinho)}`)
+    ),
+    h('div', { className: 'checkout-footer' },
+      h('button', { className: 'btn-secondary', onClick: () => setMostrarCheckout(false) }, 'Voltar ao carrinho'),
+      h('button', { className: 'btn-primary', onClick: () => setEtapaCheckout('dados') }, 'Continuar')
+    )
+  );
 
-  // Renderizar dados de entrega
-  const renderDadosEntrega = () => {
-    return React.createElement(React.Fragment, null,
-      React.createElement('div', { className: 'checkout-form' },
-        React.createElement('div', { className: 'form-group' },
-          React.createElement('label', null, 'Nome Completo'),
-          React.createElement('input', {
-            type: 'text',
-            value: dadosCompra.nome,
-            onChange: (e) => setDadosCompra({...dadosCompra, nome: e.target.value}),
-            placeholder: 'Seu nome completo'
-          })
-        ),
-        React.createElement('div', { className: 'form-group' },
-          React.createElement('label', null, 'E-mail'),
-          React.createElement('input', {
-            type: 'email',
-            value: dadosCompra.email,
-            onChange: (e) => setDadosCompra({...dadosCompra, email: e.target.value}),
-            placeholder: 'seu@email.com'
-          })
-        ),
-        React.createElement('div', { className: 'form-group' },
-          React.createElement('label', null, 'Telefone (opcional - para SMS)'),
-          React.createElement('input', {
-            type: 'tel',
-            value: dadosCompra.telefone,
-            onChange: (e) => setDadosCompra({...dadosCompra, telefone: e.target.value}),
-            placeholder: '(11) 99999-9999'
+  const renderDadosEntrega = () => h(React.Fragment, null,
+    h('div', { className: 'checkout-form' },
+      h('div', { className: 'form-group' },
+        h('label', null, 'Nome completo'),
+        h('input', { value: dadosCompra.nome, onChange: (e) => atualizarCampo('nome', e.target.value), placeholder: 'Seu nome completo' })
+      ),
+      h('div', { className: 'form-group' },
+        h('label', null, 'E-mail'),
+        h('input', { type: 'email', value: dadosCompra.email, onChange: (e) => atualizarCampo('email', e.target.value), placeholder: 'seu@email.com' })
+      ),
+      h('div', { className: 'form-group' },
+        h('label', null, 'Telefone'),
+        h('input', { type: 'tel', value: dadosCompra.telefone, onChange: (e) => atualizarCampo('telefone', e.target.value), placeholder: '(11) 99999-9999' }),
+        h('small', null, 'Opcional. Se preencher, voce pode receber SMS.')
+      ),
+      h('div', { className: 'form-group' },
+        h('label', null, 'Como deseja receber notificacoes?'),
+        h('div', { className: 'notification-options' },
+          ['email', 'sms', 'both'].map((tipo) =>
+            h('label', { key: tipo, className: 'notification-option' },
+              h('input', {
+                type: 'radio',
+                name: 'notificationType',
+                value: tipo,
+                checked: dadosCompra.notificationType === tipo,
+                disabled: tipo !== 'email' && !dadosCompra.telefone.trim(),
+                onChange: (e) => atualizarCampo('notificationType', e.target.value)
+              }),
+              h('span', null, tipo === 'email' ? 'Apenas Email' : tipo === 'sms' ? 'Apenas SMS' : 'Email + SMS')
+            )
+          )
+        )
+      ),
+      h('div', { className: 'form-row' },
+        h('div', { className: 'form-group' },
+          h('label', null, 'CEP'),
+          h('input', {
+            value: dadosCompra.cep,
+            onChange: (e) => atualizarCampo('cep', e.target.value),
+            onBlur: (e) => buscarEnderecoPorCep(e.target.value),
+            placeholder: '00000-000',
+            maxLength: 9
           }),
-          React.createElement('small', { style: { color: '#666', fontSize: '12px' } }, 
-            'Adicione seu telefone para receber confirmações por SMS também'
-          )
+          cepError ? h('small', null, cepError) : null
         ),
-        React.createElement('div', { className: 'form-group' },
-          React.createElement('label', null, 'Como deseja receber notificações?'),
-          React.createElement('div', { style: { display: 'flex', gap: '15px', marginTop: '8px' } },
-            React.createElement('label', { style: { display: 'flex', alignItems: 'center', cursor: 'pointer' } },
-              React.createElement('input', {
-                type: 'radio',
-                name: 'notificationType',
-                value: 'email',
-                checked: dadosCompra.notificationType === 'email',
-                onChange: (e) => setDadosCompra({...dadosCompra, notificationType: e.target.value})
-              }),
-              React.createElement('span', { style: { marginLeft: '5px' } }, 'Apenas Email')
-            ),
-            React.createElement('label', { style: { display: 'flex', alignItems: 'center', cursor: 'pointer' } },
-              React.createElement('input', {
-                type: 'radio',
-                name: 'notificationType',
-                value: 'sms',
-                checked: dadosCompra.notificationType === 'sms',
-                onChange: (e) => setDadosCompra({...dadosCompra, notificationType: e.target.value}),
-                disabled: !dadosCompra.telefone
-              }),
-              React.createElement('span', { style: { marginLeft: '5px' } }, 'Apenas SMS')
-            ),
-            React.createElement('label', { style: { display: 'flex', alignItems: 'center', cursor: 'pointer' } },
-              React.createElement('input', {
-                type: 'radio',
-                name: 'notificationType',
-                value: 'both',
-                checked: dadosCompra.notificationType === 'both',
-                onChange: (e) => setDadosCompra({...dadosCompra, notificationType: e.target.value}),
-                disabled: !dadosCompra.telefone
-              }),
-              React.createElement('span', { style: { marginLeft: '5px' } }, 'Email + SMS')
-            )
-          )
-        ),
-        React.createElement('div', { className: 'form-row' },
-          React.createElement('div', { className: 'form-group' },
-            React.createElement('label', null, 'CEP'),
-            React.createElement('input', {
-              type: 'text',
-              value: dadosCompra.cep,
-              onChange: (e) => setDadosCompra({...dadosCompra, cep: e.target.value}),
-              onBlur: (e) => buscarEnderecoPorCep(e.target.value),
-              placeholder: '00000-000',
-              maxLength: 9
-            }),
-            cepError && React.createElement('small', { style: { color: '#dc2626' } }, cepError)
-          ),
-          React.createElement('div', { className: 'form-group' },
-            React.createElement('label', null, 'Número'),
-            React.createElement('input', {
-              type: 'text',
-              value: dadosCompra.numero,
-              onChange: (e) => setDadosCompra({...dadosCompra, numero: e.target.value}),
-              placeholder: 'Número'
-            })
-          )
-        ),
-        React.createElement('div', { className: 'form-row' },
-          React.createElement('div', { className: 'form-group' },
-            React.createElement('label', null, 'Rua'),
-            React.createElement('input', {
-              type: 'text',
-              value: dadosCompra.logradouro,
-              onChange: (e) => setDadosCompra({...dadosCompra, logradouro: e.target.value}),
-              placeholder: 'Rua, avenida, travessa'
-            })
-          ),
-          React.createElement('div', { className: 'form-group' },
-            React.createElement('label', null, 'Complemento'),
-            React.createElement('input', {
-              type: 'text',
-              value: dadosCompra.complemento,
-              onChange: (e) => setDadosCompra({...dadosCompra, complemento: e.target.value}),
-              placeholder: 'Apto, bloco, casa'
-            })
-          )
-        ),
-        React.createElement('div', { className: 'form-row' },
-          React.createElement('div', { className: 'form-group' },
-            React.createElement('label', null, 'Bairro'),
-            React.createElement('input', {
-              type: 'text',
-              value: dadosCompra.bairro,
-              onChange: (e) => setDadosCompra({...dadosCompra, bairro: e.target.value}),
-              placeholder: 'Bairro'
-            })
-          ),
-          React.createElement('div', { className: 'form-group' },
-            React.createElement('label', null, 'Cidade / Estado'),
-            React.createElement('div', { style: { display: 'flex', gap: '1rem' } },
-              React.createElement('input', {
-                type: 'text',
-                value: dadosCompra.cidade,
-                onChange: (e) => setDadosCompra({...dadosCompra, cidade: e.target.value}),
-                placeholder: 'Cidade'
-              }),
-              React.createElement('input', {
-                type: 'text',
-                value: dadosCompra.estado,
-                onChange: (e) => setDadosCompra({...dadosCompra, estado: e.target.value}),
-                placeholder: 'UF',
-                maxLength: 2,
-                style: { maxWidth: '80px' }
-              })
-            )
-          )
+        h('div', { className: 'form-group' },
+          h('label', null, 'Numero'),
+          h('input', { value: dadosCompra.numero, onChange: (e) => atualizarCampo('numero', e.target.value), placeholder: '123' })
         )
       ),
-      erroCheckout && React.createElement('div', { className: 'mensagem erro' }, erroCheckout),
-      React.createElement('div', { className: 'checkout-footer' },
-        React.createElement('button', {
-          className: 'btn-secondary',
-          onClick: () => setEtapaCheckout('resumo')
-        }, 'Voltar ao Resumo'),
-        React.createElement('button', {
-          className: 'btn-primary',
-          onClick: () => {
-            const nome = dadosCompra.nome?.trim() || '';
-            const email = dadosCompra.email?.trim() || '';
-            const endereco = {
-              cep: dadosCompra.cep?.replace(/\D/g, ''),
-              logradouro: dadosCompra.logradouro?.trim() || '',
-              numero: dadosCompra.numero?.trim() || '',
-              complemento: dadosCompra.complemento?.trim() || '',
-              bairro: dadosCompra.bairro?.trim() || '',
-              cidade: dadosCompra.cidade?.trim() || '',
-              estado: dadosCompra.estado?.trim() || ''
-            };
-
-            if (!nome || nome.split(' ').length < 2) {
-              setErroCheckout('❌ Por favor, insira seu nome completo (nome e sobrenome).');
-              return;
-            }
-
-            if (!validarEmail(email)) {
-              setErroCheckout('❌ Por favor, insira um e-mail válido.');
-              return;
-            }
-
-            if (!endereco.cep || endereco.cep.length !== 8 || !endereco.logradouro || !endereco.numero || !endereco.bairro || !endereco.cidade || !endereco.estado) {
-              setErroCheckout('❌ Por favor, complete o endereço com CEP, rua, número, bairro, cidade e estado.');
-              return;
-            }
-
-            setErroCheckout('');
-            setEtapaCheckout('pagamento');
-          }
-        }, 'Continuar para Pagamento')
-      )
-    );
-  };
-
-  // Renderizar método de pagamento
-  const renderMetodoPagamento = () => {
-    return React.createElement(React.Fragment, null,
-      React.createElement('div', { className: 'pix-section' },
-        React.createElement('h3', null, 'Escolha o Método de Pagamento'),
-        React.createElement('div', { className: 'pix-option' },
-          React.createElement('label', null,
-            React.createElement('input', {
-              type: 'radio',
-              name: 'metodoPagamento',
-              value: 'pix',
-              checked: metodoPagamento === 'pix',
-              onChange: (e) => setMetodoPagamento(e.target.value)
-            }),
-            ' Pagamento via Pix'
-          ),
-          metodoPagamento === 'pix' && React.createElement('div', { className: 'pix-details' },
-            React.createElement('p', null, 'Escaneie o QR Code ou copie a chave Pix para realizar o pagamento.'),
-            React.createElement('div', { className: 'pix-qr' },
-              React.createElement('img', {
-                src: gerarPixQrUrl(totalCarrinho, PIX_CONFIG),
-                alt: 'QR Code Pix',
-                className: 'qr-image'
-              })
-            ),
-            React.createElement('div', { className: 'pix-copy' },
-              React.createElement('input', {
-                type: 'text',
-                value: PIX_CONFIG.chave,
-                readOnly: true,
-                className: 'codigo-pix-texto'
-              }),
-              React.createElement('button', {
-                className: 'btn-copiar',
-                onClick: () => navigator.clipboard.writeText(PIX_CONFIG.chave)
-              }, 'Copiar')
-            )
-          )
+      h('div', { className: 'form-row' },
+        h('div', { className: 'form-group' },
+          h('label', null, 'Rua'),
+          h('input', { value: dadosCompra.logradouro, onChange: (e) => atualizarCampo('logradouro', e.target.value), placeholder: 'Rua, avenida, travessa' })
         ),
-        React.createElement('div', { className: 'pix-option' },
-          React.createElement('label', null,
-            React.createElement('input', {
-              type: 'radio',
-              name: 'metodoPagamento',
-              value: 'stripe',
-              checked: metodoPagamento === 'stripe',
-              onChange: (e) => setMetodoPagamento(e.target.value)
-            }),
-            ' Outros pagamentos via Stripe (Cartão, Boleto, Apple Pay, Google Pay, etc.)'
-          ),
-          metodoPagamento === 'stripe' && React.createElement('div', { className: 'installments-section' },
-            React.createElement('h4', null, 'Pagamento via Stripe'),
-            React.createElement('p', null, 'Você será redirecionado para a plataforma de pagamentos Stripe para concluir o pedido.'),
-            totalCarrinho > 100 ?
-              React.createElement(React.Fragment, null,
-                React.createElement('p', null, 'Selecione o número de parcelas desejado:'),
-                [1, 2, 3, 4, 5, 6].map(num =>
-                  React.createElement('div', { key: num, className: 'installments-option' },
-                    React.createElement('input', {
-                      type: 'radio',
-                      name: 'parcelas',
-                      value: num,
-                      checked: parcelas === num,
-                      onChange: (e) => setParcelas(Number(e.target.value))
-                    }),
-                    React.createElement('div', { className: 'installments-details' },
-                      React.createElement('h5', null, `${num}x de ${formatarPreco(totalCarrinho / num)}`),
-                      num > 1 && React.createElement('p', null, `Total: ${formatarPreco(totalCarrinho)}`)
-                    )
+        h('div', { className: 'form-group' },
+          h('label', null, 'Complemento'),
+          h('input', { value: dadosCompra.complemento, onChange: (e) => atualizarCampo('complemento', e.target.value), placeholder: 'Apto, bloco, casa' })
+        )
+      ),
+      h('div', { className: 'form-row' },
+        h('div', { className: 'form-group' },
+          h('label', null, 'Bairro'),
+          h('input', { value: dadosCompra.bairro, onChange: (e) => atualizarCampo('bairro', e.target.value), placeholder: 'Bairro' })
+        ),
+        h('div', { className: 'form-group' },
+          h('label', null, 'Cidade / Estado'),
+          h('div', { className: 'form-row' },
+            h('input', { value: dadosCompra.cidade, onChange: (e) => atualizarCampo('cidade', e.target.value), placeholder: 'Cidade' }),
+            h('input', { value: dadosCompra.estado, onChange: (e) => atualizarCampo('estado', e.target.value), placeholder: 'UF', maxLength: 2 })
+          )
+        )
+      )
+    ),
+    erroCheckout ? h('div', { className: 'mensagem erro' }, erroCheckout) : null,
+    h('div', { className: 'checkout-footer' },
+      h('button', { className: 'btn-secondary', onClick: () => setEtapaCheckout('resumo') }, 'Voltar'),
+      h('button', {
+        className: 'btn-primary',
+        onClick: () => {
+          const erro = validarCheckout();
+          if (erro) {
+            setErroCheckout(erro);
+            return;
+          }
+          setErroCheckout('');
+          setEtapaCheckout('pagamento');
+        }
+      }, 'Ir para pagamento')
+    )
+  );
+
+  const renderMetodoPagamento = () => h(React.Fragment, null,
+    h('div', { className: 'pix-section' },
+      h('h3', null, 'Metodo de pagamento'),
+      h('div', { className: 'pix-option' },
+        h('label', null,
+          h('input', {
+            type: 'radio',
+            name: 'metodoPagamento',
+            value: 'pix',
+            checked: metodoPagamento === 'pix',
+            onChange: (e) => setMetodoPagamento(e.target.value)
+          }),
+          h('span', null, 'Pagamento via Pix')
+        ),
+        metodoPagamento === 'pix' ? h('div', { className: 'pix-details' },
+          h('p', null, 'Escaneie o QR Code ou copie a chave para concluir o pagamento.'),
+          h('div', { className: 'pix-qr' }, h('img', { className: 'qr-image', src: gerarPixQrUrl(totalCarrinho), alt: 'QR Code Pix' })),
+          h('div', { className: 'pix-copy' },
+            h('input', { readOnly: true, value: PIX_CONFIG.chave, className: 'codigo-pix-texto' }),
+            h('button', { className: 'btn-copiar', onClick: () => navigator.clipboard.writeText(PIX_CONFIG.chave) }, 'Copiar')
+          )
+        ) : null
+      ),
+      h('div', { className: 'pix-option' },
+        h('label', null,
+          h('input', {
+            type: 'radio',
+            name: 'metodoPagamento',
+            value: 'stripe',
+            checked: metodoPagamento === 'stripe',
+            onChange: (e) => setMetodoPagamento(e.target.value)
+          }),
+          h('span', null, 'Stripe: cartao, boleto e carteiras digitais')
+        ),
+        metodoPagamento === 'stripe' ? h('div', { className: 'installments-section' },
+          h('h4', null, 'Pagamento via Stripe'),
+          h('p', null, 'Voce sera redirecionado para a plataforma Stripe para concluir o pedido.'),
+          totalCarrinho > 100
+            ? [1, 2, 3, 4, 5, 6].map((num) =>
+                h('label', { key: num, className: 'installments-option' },
+                  h('input', {
+                    type: 'radio',
+                    name: 'parcelas',
+                    value: num,
+                    checked: parcelas === num,
+                    onChange: (e) => setParcelas(Number(e.target.value))
+                  }),
+                  h('div', { className: 'installments-details' },
+                    h('h5', null, `${num}x de ${formatarPreco(totalCarrinho / num)}`),
+                    num > 1 ? h('p', null, `Total: ${formatarPreco(totalCarrinho)}`) : h('p', null, 'Pagamento a vista')
                   )
                 )
-              ) :
-              React.createElement('p', null, 'O pagamento será processado em 1x via Stripe.')
-          )
-        )
-      ),
-      erroCheckout && React.createElement('div', { className: 'mensagem erro' }, erroCheckout),
-      React.createElement('div', { className: 'checkout-resumo' },
-        React.createElement('h3', null, 'Resumo do Pedido'),
-        React.createElement('div', { className: 'resumo-itens' },
-          carrinho.map(item =>
-            React.createElement('div', { key: item.id, className: 'resumo-item' },
-              `${item.nome} x${item.quantidade} - ${formatarPreco(item.preco * item.quantidade)}`
-            )
-          )
-        ),
-        React.createElement('div', { className: 'resumo-total' },
-          `Total: ${formatarPreco(totalCarrinho)}`
-        )
-      ),
-      React.createElement('div', { className: 'checkout-footer' },
-        React.createElement('button', {
-          className: 'btn-secondary',
-          onClick: () => setEtapaCheckout('dados')
-        }, 'Voltar aos Dados'),
-        React.createElement('button', {
-          className: 'btn-primary',
-          onClick: finalizarCompra,
-          disabled: processandoPagamento
-        }, processandoPagamento ? 'Processando...' : 'Confirmar Compra')
+              )
+            : h('p', null, 'O pagamento sera processado em 1x.')
+        ) : null
       )
-    );
-  };
+    ),
+    erroCheckout ? h('div', { className: 'mensagem erro' }, erroCheckout) : null,
+    h('div', { className: 'checkout-resumo' },
+      h('h3', null, 'Resumo final'),
+      h('div', { className: 'resumo-itens' },
+        carrinho.map((item) => h('div', { key: item.id, className: 'resumo-item' }, `${item.nome} x${item.quantidade} - ${formatarPreco(item.preco * item.quantidade)}`))
+      ),
+      h('div', { className: 'resumo-total' }, `Total: ${formatarPreco(totalCarrinho)}`)
+    ),
+    h('div', { className: 'checkout-footer' },
+      h('button', { className: 'btn-secondary', onClick: () => setEtapaCheckout('dados') }, 'Voltar'),
+      h('button', { className: 'btn-primary', onClick: finalizarCompra, disabled: processandoPagamento }, processandoPagamento ? 'Processando...' : 'Confirmar compra')
+    )
+  );
 
-  // Renderizar checkout
   const renderCheckout = () => {
-    const titulo = etapaCheckout === 'resumo' ? 'Resumo do Pedido' :
-                   etapaCheckout === 'dados' ? 'Dados de Entrega' : 'Método de Pagamento';
+    const titulo = etapaCheckout === 'resumo' ? 'Resumo do pedido' : etapaCheckout === 'dados' ? 'Dados de entrega' : 'Pagamento';
 
-    return React.createElement('div', { className: 'checkout-overlay' },
-      React.createElement('div', { className: 'checkout-modal' },
-        React.createElement('div', { className: 'checkout-header' },
-          React.createElement('h2', null, titulo),
-          React.createElement('button', {
+    return h('div', { className: 'checkout-overlay' },
+      h('div', { className: 'checkout-modal' },
+        h('div', { className: 'checkout-header' },
+          h('h2', null, titulo),
+          h('button', {
             className: 'btn-close',
             onClick: () => {
               setMostrarCheckout(false);
-              setCepError('');
               setEtapaCheckout('resumo');
+              setErroCheckout('');
+              setCepError('');
             }
-          }, '✕')
+          }, 'x')
         ),
-        React.createElement('div', { className: 'checkout-body' },
-          etapaCheckout === 'resumo' ? renderResumoPedido() :
-          etapaCheckout === 'dados' ? renderDadosEntrega() :
-          renderMetodoPagamento()
+        h('div', { className: 'checkout-body' },
+          etapaCheckout === 'resumo' ? renderResumoPedido() : etapaCheckout === 'dados' ? renderDadosEntrega() : renderMetodoPagamento()
         )
       )
     );
   };
 
-  // Renderizar pedidos
+  const renderAdminLogin = () => h('div', { className: 'checkout-overlay' },
+    h('div', { className: 'checkout-modal admin-modal' },
+      h('div', { className: 'checkout-header' },
+        h('h2', null, 'Acesso restrito'),
+        h('button', { className: 'btn-close', onClick: fecharAdminLogin }, 'x')
+      ),
+      h('div', { className: 'checkout-body' },
+        h('div', { className: 'checkout-form admin-login-form' },
+          h('div', { className: 'form-group' },
+            h('label', null, 'Usuario'),
+            h('input', {
+              value: credenciaisAdmin.username,
+              onChange: (e) => atualizarCredencialAdmin('username', e.target.value),
+              placeholder: 'Seu usuario'
+            })
+          ),
+          h('div', { className: 'form-group' },
+            h('label', null, 'Senha'),
+            h('input', {
+              type: 'password',
+              value: credenciaisAdmin.password,
+              onChange: (e) => atualizarCredencialAdmin('password', e.target.value),
+              placeholder: 'Sua senha'
+            })
+          ),
+          adminErro ? h('div', { className: 'mensagem erro' }, adminErro) : null,
+          h('div', { className: 'checkout-footer' },
+            h('button', { className: 'btn-secondary', onClick: fecharAdminLogin }, 'Cancelar'),
+            h('button', { className: 'btn-primary', onClick: autenticarAdmin, disabled: processandoAdminLogin }, processandoAdminLogin ? 'Entrando...' : 'Entrar')
+          )
+        )
+      )
+    )
+  );
+
   const renderPedidos = () => {
-    if (pedidos.length === 0) {
-      return React.createElement('div', { className: 'pedidos-vazio' },
-        React.createElement('h3', null, 'Nenhum pedido ainda'),
-        React.createElement('p', null, 'Faça sua primeira compra!'),
-        React.createElement('button', {
-          className: 'btn-primary',
-          onClick: () => setAbaAtiva('produtos')
-        }, 'Ver Produtos')
+    if (!pedidos.length) {
+      return h('section', { className: 'pedidos-vazio' },
+        h('h3', null, 'Nenhum pedido ainda'),
+        h('p', null, 'Finalize uma compra para acompanhar o status aqui.'),
+        h('button', { className: 'btn-primary', onClick: () => setAbaAtiva('produtos') }, 'Ver produtos')
       );
     }
 
-    return React.createElement('div', { className: 'pedidos-lista' },
-      pedidos.map(pedido =>
-        React.createElement('div', { key: pedido.id, className: 'pedido-card' },
-          React.createElement('div', { className: 'pedido-header' },
-            React.createElement('h3', null, `Pedido ${pedido.id}`),
-            React.createElement('span', { className: `status ${pedido.status.toLowerCase().replace(/ /g, '-')}` },
-              pedido.status
-            )
+    return h('section', { className: 'pedidos-lista' },
+      pedidos.map((pedido) =>
+        h('article', { key: pedido.id, className: 'pedido-card' },
+          h('div', { className: 'pedido-header' },
+            h('h3', null, `Pedido ${pedido.id}`),
+            h('span', { className: `status ${String(pedido.status || '').toLowerCase().replace(/ /g, '-')}` }, pedido.status)
           ),
-          React.createElement('div', { className: 'pedido-info' },
-            React.createElement('p', null, `Cliente: ${pedido.cliente.nome}`),
-            React.createElement('p', null, `Email: ${pedido.cliente.email}`),
-            React.createElement('p', null, `Data: ${pedido.data}`),
-            React.createElement('p', null, `Método de Pagamento: ${pedido.metodoPagamento === 'pix' ? 'Pix' : `Stripe (${pedido.parcelas || 1}x)`}`)
+          h('div', { className: 'pedido-info' },
+            h('p', null, `Cliente: ${pedido.cliente?.nome || '-'}`),
+            h('p', null, `Email: ${pedido.cliente?.email || '-'}`),
+            h('p', null, `Data: ${pedido.data || '-'}`),
+            h('p', null, `Pagamento: ${pedido.metodoPagamento === 'pix' ? 'Pix' : `Stripe (${pedido.parcelas || 1}x)`}`)
           ),
-          React.createElement('div', { className: 'pedido-itens' },
-            pedido.itens.map(item =>
-              React.createElement('div', { key: item.id, className: 'pedido-item' },
-                `${item.nome} x${item.quantidade} - ${formatarPreco(item.preco * item.quantidade)}`
+          h('div', { className: 'pedido-itens' },
+            (pedido.itens || []).map((item) => h('div', { key: `${pedido.id}-${item.id}`, className: 'pedido-item' }, `${item.nome} x${item.quantidade} - ${formatarPreco(item.preco * item.quantidade)}`))
+          ),
+          pedido.metodoPagamento === 'pix'
+            ? h('div', { className: 'qr-code' },
+                h('h4', null, 'Pagamento via Pix'),
+                h('div', { className: 'qr-container' }, h('img', { className: 'qr-image', src: pedido.qrCode, alt: 'QR Code Pix' })),
+                h('div', { className: 'codigo-pix' },
+                  h('small', null, 'Chave Pix'),
+                  h('div', { className: 'codigo-pix-texto' }, pedido.chavePix),
+                  h('button', { className: 'btn-copiar', onClick: () => navigator.clipboard.writeText(pedido.chavePix) }, 'Copiar chave')
+                )
               )
-            )
+            : null,
+          h('div', { className: 'pedido-total' }, `Total: ${formatarPreco(pedido.total)}`),
+          h('div', { className: 'pedido-actions' },
+            pedido.status?.toLowerCase().includes('aguardando') && pedido.paymentUrl ? h('a', { className: 'btn-primary', href: pedido.paymentUrl, target: '_blank', rel: 'noreferrer' }, 'Retomar Stripe') : null,
+            pedido.status?.toLowerCase().includes('aguardando') && pedido.stripeSessionId ? h('button', { className: 'btn-secondary', onClick: () => atualizarStatusPedido(pedido.stripeSessionId, pedido.id) }, 'Verificar pagamento') : null,
+            pedido.status?.toLowerCase().includes('aguardando') && pedido.metodoPagamento === 'pix' ? h('button', { className: 'btn-primary', onClick: () => confirmarPixPedido(pedido.id) }, 'Confirmar Pix') : null,
+            pedido.status?.toLowerCase().includes('pago') ? h('button', { className: 'btn-secondary', onClick: () => verEtiqueta(pedido.id) }, 'Ver etiqueta A6') : null
           ),
-          pedido.metodoPagamento === 'pix' && React.createElement('div', { className: 'qr-code' },
-            React.createElement('h4', null, 'Pagamento via Pix'),
-            React.createElement('div', { className: 'qr-container' },
-              React.createElement('img', {
-                src: pedido.qrCode,
-                alt: 'QR Code Pix',
-                className: 'qr-image'
-              })
-            ),
-            React.createElement('div', { className: 'codigo-pix' },
-              React.createElement('small', null, 'Chave Pix:'),
-              React.createElement('div', { className: 'codigo-pix-texto' }, pedido.chavePix),
-              React.createElement('button', {
-                className: 'btn-copiar',
-                onClick: () => navigator.clipboard.writeText(pedido.chavePix)
-              }, 'Copiar Chave')
-            ),
-            React.createElement('div', { className: 'nota-importante' },
-              React.createElement('p', null, 'Após realizar o pagamento, o status será atualizado automaticamente.')
-            )
-          ),
-          React.createElement('div', { className: 'pedido-total' },
-            `Total: ${formatarPreco(pedido.total)}`
-          ),
-          pedido.status && pedido.status.toLowerCase().includes('aguardando') && React.createElement('div', { className: 'pedido-actions', style: { marginTop: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' } },
-            pedido.paymentUrl && React.createElement('a', {
-              href: pedido.paymentUrl,
-              target: '_blank',
-              rel: 'noopener noreferrer',
-              className: 'btn-primary',
-              style: { display: 'inline-flex', alignItems: 'center' }
-            }, 'Retomar Checkout Stripe'),
-            pedido.stripeSessionId && React.createElement('button', {
-              className: 'btn-secondary',
-              onClick: () => atualizarStatusPedido(pedido.stripeSessionId, pedido.id)
-            }, 'Verificar Pagamento'),
-            pedido.metodoPagamento === 'pix' && React.createElement('button', {
-              className: 'btn-primary',
-              onClick: () => confirmarPixPedido(pedido.id)
-            }, 'Confirmar Pix')
-          ),
-          pedido.status && pedido.status.toLowerCase().includes('pago') && React.createElement('div', { className: 'pedido-actions', style: { marginTop: '1rem' } },
-            React.createElement('button', {
-              className: 'btn-secondary',
-              onClick: () => verEtiqueta(pedido.id)
-            }, 'Ver Etiqueta A6')
-          ),
-          // === MENÚ DE GESTIÓN DE PEDIDOS ===
-          React.createElement('div', { className: 'pedido-gestion', style: { marginTop: '1rem', padding: '1rem', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' } },
-            React.createElement('h4', { style: { margin: '0 0 0.75rem 0', fontSize: '1rem', color: '#495057' } }, 'Gestión del Pedido'),
-            React.createElement('div', { style: { display: 'flex', gap: '0.5rem', flexWrap: 'wrap' } },
-              // Botón Cancelar (solo si no está cancelado, completado o pagado)
-              !pedido.status.toLowerCase().includes('cancelado') &&
-              !pedido.status.toLowerCase().includes('completado') &&
-              !pedido.status.toLowerCase().includes('pago') &&
-              React.createElement('button', {
-                className: 'btn-danger',
-                onClick: () => cancelarPedido(pedido.id),
-                style: { background: '#dc3545', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.875rem' }
-              }, 'Cancelar Pedido'),
-
-              // Botón Completar (solo si está pagado)
-              pedido.status.toLowerCase().includes('pago') &&
-              !pedido.status.toLowerCase().includes('completado') &&
-              React.createElement('button', {
-                className: 'btn-success',
-                onClick: () => completarPedido(pedido.id),
-                style: { background: '#28a745', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.875rem' }
-              }, 'Marcar Completado'),
-
-              // Botón Reenviar Confirmación (solo si está pagado)
-              pedido.status.toLowerCase().includes('pago') &&
-              React.createElement('button', {
-                className: 'btn-info',
-                onClick: () => reenviarConfirmacion(pedido.id),
-                style: { background: '#17a2b8', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.875rem' }
-              }, 'Reenviar Confirmación'),
-
-              // Botón Eliminar (siempre disponible)
-              React.createElement('button', {
-                className: 'btn-outline-danger',
-                onClick: () => eliminarPedido(pedido.id),
-                style: { background: 'transparent', color: '#dc3545', border: '1px solid #dc3545', padding: '0.5rem 1rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.875rem' }
-              }, 'Eliminar Pedido')
-            )
+          h('div', { className: 'pedido-actions' },
+            !pedido.status?.toLowerCase().includes('cancelado') && !pedido.status?.toLowerCase().includes('pago') && !pedido.status?.toLowerCase().includes('completado') ? h('button', { className: 'btn-secondary', onClick: () => cancelarPedido(pedido.id) }, 'Cancelar pedido') : null,
+            pedido.status?.toLowerCase().includes('pago') && !pedido.status?.toLowerCase().includes('completado') ? h('button', { className: 'btn-secondary', onClick: () => completarPedido(pedido.id) }, 'Marcar completado') : null,
+            pedido.status?.toLowerCase().includes('pago') ? h('button', { className: 'btn-secondary', onClick: () => reenviarConfirmacao(pedido.id) }, 'Reenviar confirmacao') : null,
+            h('button', { className: 'btn-secondary', onClick: () => eliminarPedido(pedido.id) }, 'Eliminar pedido')
           )
         )
       )
     );
   };
 
-  // Render principal
-  return React.createElement('div', { className: `app ${mostrarCheckout ? 'checkout-open' : ''}` },
-    // Header
-    React.createElement('header', { className: 'header' },
-      React.createElement('div', { className: 'brand' },
-        React.createElement('div', { className: 'brand-mark' }, 'PG'),
-        React.createElement('div', { className: 'brand-title' },
-          React.createElement('h1', null, 'Perfume Glamour'),
-          React.createElement('p', null, 'Perfumes exclusivos com entrega rápida')
+  return h('div', { className: `app ${mostrarCheckout ? 'checkout-open' : ''}` },
+    h('header', { className: 'header' },
+      h('div', { className: 'brand' },
+        h('div', { className: 'brand-mark' }, 
+          h('img', { src: '/img/PG Logo/logo 9.png', alt: 'Perfume Glamour Logo', className: 'brand-logo' })
+        ),
+        h('div', { className: 'brand-title' },
+          h('h1', null, 'Glamour Perfumes'),
+          h('p', null, 'Perfumes exclusivos com entrega rapida')
         )
       ),
-      React.createElement('nav', { className: 'nav' },
-        React.createElement('button', {
-          className: `nav-btn ${abaAtiva === 'produtos' ? 'active' : ''}`,
-          onClick: () => setAbaAtiva('produtos')
-        }, 'Produtos'),
-        React.createElement('button', {
-          className: `nav-btn ${abaAtiva === 'carrinho' ? 'active' : ''}`,
-          onClick: () => setAbaAtiva('carrinho')
-        }, `Carrinho (${carrinho.length})`),
-        React.createElement('button', {
-          className: `nav-btn ${abaAtiva === 'pedidos' ? 'active' : ''}`,
-          onClick: () => setAbaAtiva('pedidos')
-        }, 'Meus Pedidos')
+      h('nav', { className: 'nav' },
+        h('button', { className: `nav-btn ${abaAtiva === 'produtos' ? 'active' : ''}`, onClick: () => setAbaAtiva('produtos') }, 'Produtos'),
+        h('button', { className: `nav-btn ${abaAtiva === 'carrinho' ? 'active' : ''}`, onClick: () => setAbaAtiva('carrinho') }, `Carrinho (${carrinho.length})`),
+        h('button', { className: `nav-btn ${abaAtiva === 'pedidos' ? 'active' : ''}`, onClick: () => setAbaAtiva('pedidos') }, 'Meus pedidos'),
+        adminAutenticado ? h('button', { className: `nav-btn ${abaAtiva === 'produtos' ? 'active' : ''}`, onClick: () => setAbaAtiva('produtos') }, 'Modo admin') : null
       )
     ),
-
-    // Mensagem
-    mensagem && React.createElement('div', { className: `mensagem ${mensagem.includes('❌') ? 'erro' : 'sucesso'}` },
-      mensagem
+    mensagem ? h('div', { className: `mensagem ${String(mensagem).toLowerCase().includes('nao') || String(mensagem).toLowerCase().includes('erro') ? 'erro' : 'sucesso'}` }, mensagem) : null,
+    h('main', { className: 'main' },
+      abaAtiva === 'produtos' ? renderProdutos() : null,
+      abaAtiva === 'carrinho' ? renderCarrinho() : null,
+      abaAtiva === 'pedidos' ? renderPedidos() : null
     ),
-
-    // Conteúdo principal
-    React.createElement('main', { className: 'main' },
-      abaAtiva === 'produtos' && renderProdutos(),
-      abaAtiva === 'carrinho' && renderCarrinho(),
-      abaAtiva === 'pedidos' && renderPedidos()
-    ),
-
-    // Modal de checkout
-    mostrarCheckout && renderCheckout(),
-
-    // Footer
-    React.createElement('footer', { className: 'footer' },
-      React.createElement('p', null, '© 2024 Perfume Glamour - Todos os direitos reservados')
+    mostrarCheckout ? renderCheckout() : null,
+    renderPreviewImagem(),
+    renderProdutoPreview(),
+    showAdminPanel && adminAutenticado ? renderAdminPanelNovo() : null,
+    showFormModal && adminAutenticado ? renderFormProdutoModal() : null,
+    mostrarAdminLogin ? renderAdminLogin() : null,
+    h('footer', { className: 'footer' },
+      h('div', { className: 'footer-actions' },
+        h('p', null, `(c) ${new Date().getFullYear()} Perfume Glamour - vitrine premium com checkout direto`),
+        adminAutenticado
+          ? h('button', { className: 'btn-secondary footer-admin-btn', onClick: sairDoAdmin }, 'Sair do admin')
+          : h('button', { className: 'btn-secondary footer-admin-btn', onClick: abrirAdmin }, 'Acesso restrito')
+      )
     )
   );
 }
 
-// Renderizar aplicação
-console.log('Renderizando aplicação...');
-
 try {
-  const root = ReactDOM.createRoot(document.getElementById('root'));
-  root.render(React.createElement(App));
-  console.log('✅ Aplicação React renderizada com sucesso!');
+  ReactDOM.createRoot(document.getElementById('root')).render(h(App));
 } catch (error) {
-  console.error('❌ Erro ao renderizar React:', error);
+  console.error('Erro ao renderizar React:', error);
   document.getElementById('root').innerHTML = `
-    <div style="text-align: center; padding: 50px; color: red;">
-      <h2>Erro ao carregar a aplicação React</h2>
+    <div style="padding:48px;text-align:center;color:#8d342b;">
+      <h2>Erro ao carregar a aplicacao React</h2>
       <p>Verifique o console do navegador para mais detalhes.</p>
-      <p><a href="index-offline.html" style="color: blue;">Tente a versão offline</a></p>
     </div>
   `;
 }

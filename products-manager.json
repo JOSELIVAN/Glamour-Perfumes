@@ -1,0 +1,47 @@
+[
+  {
+    "id": "aurora",
+    "nome": "Club de Nuit Urban Man Elixir",
+    "categoria": "Masculino  ♂",
+    "descricao": "Perfume masculino, fragrância cítrica, especiada e amadeirada. Notas frescas de bergamota e pimenta rosa, coração aromático com lavanda e especiarias, com uma base quente de âmbar.",
+    "preco": 229.99,
+    "imagens": [
+      "/img/CLUB%20DE%20NUIT%20ELIXIR.png",
+      "/img/CLUB%20DE%20NUIT%20ELIXIR-2.png",
+      "/img/CLUB%20DE%20NUIT%20ELIXIR-1.png"
+    ]
+  },
+  {
+    "id": "noir",
+    "nome": "Club de Nuit MALEKA",
+    "categoria": "Feminino ♀",
+    "descricao": "Perfume feminino, com uma fragrância floral frutada moderna. Notas vibrantes de lichia, bergamota e pimenta rosa, coração delicado de íris, e uma base doce e envolvente de pralinê, sândalo e ambroxan.",
+    "preco": 269.99,
+    "imagens": [
+      "/img/CLUB%20DE%20NUIT%20MALEKA.jpeg",
+      "/img/CLUM%20DE%20NUIT%20MALEKA.png"
+    ]
+  },
+  {
+    "id": "amour",
+    "nome": "Club de Nuit Precieux",
+    "categoria": "Unissex",
+    "descricao": "Fragrância frutada, cítrica e amadeirada. Notas vibrantes de abacaxi, bergamota e pimenta, coração elegante com madeiras, jasmim e musgo, e finaliza com uma base quente de âmbar, baunilha, couro e almíscar.",
+    "preco": 349.99,
+    "imagens": [
+      "/img/CLUB%20DE%20NUIT%20PRECIEUX.png",
+      "/img/CLUB%20DE%20NUIT%20PRECIEUX-1.png"
+    ]
+  },
+  {
+    "id": "midnight",
+    "nome": "HAWAS Black",
+    "categoria": "Masculino ♂",
+    "descricao": "Perfume masculino que combina frescor frutado com um fundo amadeirado e âmbar. Notas cítricas e frutadas como bergamota, abacaxi e toranja, coração com patchouli, cedro e jasmim, e finaliza com uma base quente de âmbar, musgo e madeiras.",
+    "preco": 299.9,
+    "imagens": [
+      "/img/HAWAS%20BLACK.jpg",
+      "/img/HAWAS%20BLACK-1.jpg"
+    ]
+  }
+]

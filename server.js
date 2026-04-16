@@ -16,8 +16,11 @@ const stripe = require('stripe')(stripeSecretKey);
 const nodemailer = require('nodemailer');
 const twilio = require('twilio');
 const validStripeKey = stripeSecretKey && !stripeSecretKey.includes('YOUR_STRIPE_SECRET_KEY');
+const adminUser = process.env.ADMIN_USER || 'admin';
+const adminPassword = process.env.ADMIN_PASSWORD || 'change-me';
 
 const ORDERS_FILE = 'orders.json';
+const PRODUCTS_FILE = 'products-manager.json';
 
 const loadOrders = () => {
   try {
@@ -38,7 +41,27 @@ const saveOrders = (orders) => {
   }
 };
 
+const loadProducts = () => {
+  try {
+    if (fs.existsSync(PRODUCTS_FILE)) {
+      return JSON.parse(fs.readFileSync(PRODUCTS_FILE, 'utf8')) || [];
+    }
+  } catch (error) {
+    console.error('Error al cargar products.json:', error);
+  }
+  return [];
+};
+
+const saveProducts = (products) => {
+  try {
+    fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(products, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Error al guardar products.json:', error);
+  }
+};
+
 const ordersStore = loadOrders();
+const productsStore = loadProducts();
 
 const emailConfig = {
   host: process.env.EMAIL_HOST,
@@ -350,8 +373,6 @@ const updateOrderStatus = async (orderId, status, additional = {}) => {
   }
 
   return order;
-
-  return order;
 };
 
 const createOrder = async ({ id, cliente, itens, total, metodoPagamento, parcelas, chavePix, qrCode, stripeSessionId, paymentUrl }) => {
@@ -381,8 +402,64 @@ const createOrder = async ({ id, cliente, itens, total, metodoPagamento, parcela
 };
 
 const app = express();
+app.set('trust proxy', 1);
+
 const PORT = process.env.PORT || 5500;
 const appBaseUrl = process.env.APP_BASE_URL || `http://localhost:${PORT}`;
+
+/** Origen público para redirects de Checkout (respeta APP_BASE_URL y proxies). */
+const getCheckoutOrigin = (req) => {
+  const env = process.env.APP_BASE_URL && String(process.env.APP_BASE_URL).trim();
+  if (env) {
+    try {
+      return new URL(env).origin;
+    } catch {
+      /* continuar */
+    }
+  }
+  const host = req.get('x-forwarded-host') || req.get('host');
+  if (!host) {
+    try {
+      return new URL(appBaseUrl).origin;
+    } catch {
+      return `http://localhost:${PORT}`;
+    }
+  }
+  const rawProto = req.get('x-forwarded-proto') || (req.secure ? 'https' : req.protocol) || 'http';
+  const proto = String(rawProto).split(',')[0].trim();
+  return `${proto}://${host}`;
+};
+
+/**
+ * Stripe Checkout sólo acepta imágenes HTTPS absolutas. Rutas relativas o http://
+ * provocan "Not a valid URL". Si no hay URL HTTPS válida, no se envía el campo images.
+ */
+const buildStripeProductImages = (pictureUrl, siteOrigin) => {
+  if (pictureUrl == null || typeof pictureUrl !== 'string') return null;
+  const t = pictureUrl.trim();
+  if (!t) return null;
+  let base;
+  try {
+    base = new URL(siteOrigin);
+  } catch {
+    return null;
+  }
+  try {
+    let u;
+    if (/^https?:\/\//i.test(t)) {
+      u = new URL(t);
+    } else {
+      const path = t.startsWith('/') ? t : `/${t}`;
+      u = new URL(path, base);
+    }
+    if (u.protocol !== 'https:') {
+      return null;
+    }
+    return [u.href];
+  } catch {
+    return null;
+  }
+};
 
 app.use(cors({
   origin: '*',
@@ -397,11 +474,62 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+/** 
+ * El webhook de Stripe DEBE definirse antes del parser JSON global 
+ * para recibir el cuerpo raw necesario para validar la firma.
+ */
+app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event = null;
+
+  try {
+    if (process.env.STRIPE_WEBHOOK_SECRET && sig) {
+      event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    } else {
+      event = JSON.parse(req.body.toString());
+    }
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook error: ${err.message}`);
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    const orderId = session.client_reference_id;
+    if (orderId && ordersStore[orderId]) {
+      await updateOrderStatus(orderId, 'Pago', { 
+        stripeSessionId: session.id, 
+        paymentUrl: session.url, 
+        paidAt: new Date().toLocaleString('pt-BR') 
+      });
+      console.log(`Orden ${orderId} marcada como pago desde webhook.`);
+    }
+  }
+
+  res.json({ received: true });
+});
+
 app.use(express.json());
 app.use(express.static('.'));
 
 app.get('/api/ping', (req, res) => {
   res.json({ ok: true, message: 'Servidor API funcionando' });
+});
+
+app.get('/api/products', (req, res) => {
+  res.json(productsStore);
+});
+
+app.post('/api/products', (req, res) => {
+  const products = req.body;
+  if (!Array.isArray(products)) {
+    return res.status(400).json({ error: 'Se espera un array de productos.' });
+  }
+  productsStore.length = 0;
+  productsStore.push(...products);
+  saveProducts(productsStore);
+  res.json({ ok: true });
 });
 
 app.get('/api/order-status', (req, res) => {
@@ -430,6 +558,38 @@ app.get('/api/order-by-session', (req, res) => {
   }
 
   res.json(order);
+});
+
+app.post('/api/admin/login', (req, res) => {
+  const { username, password } = req.body || {};
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Usuario y contraseña son requeridos.' });
+  }
+
+  if (username !== adminUser || password !== adminPassword) {
+    return res.status(401).json({ error: 'Credenciales invalidas.' });
+  }
+
+  return res.json({ ok: true, user: username });
+});
+
+app.get('/api/admin/assets', (req, res) => {
+  try {
+    const assetsDir = 'img';
+    if (!fs.existsSync(assetsDir)) {
+      return res.json({ files: [] });
+    }
+
+    const files = fs.readdirSync(assetsDir)
+      .filter((file) => /\.(png|jpe?g|webp|gif)$/i.test(file))
+      .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+    return res.json({ files });
+  } catch (error) {
+    console.error('Error listing admin assets:', error);
+    return res.status(500).json({ error: 'No se pudieron listar los archivos locales.' });
+  }
 });
 
 app.post('/api/register-order', async (req, res) => {
@@ -559,17 +719,23 @@ const handleCreateCheckoutSession = async (req, res) => {
       return res.status(400).json({ error: 'El carrito está vacío o no se recibieron items.' });
     }
 
-    const lineItems = items.map(item => ({
-      price_data: {
-        currency: 'brl',
-        product_data: {
-          name: item.title,
-          images: item.picture_url ? [item.picture_url] : [],
+    const checkoutOrigin = getCheckoutOrigin(req);
+
+    const lineItems = items.map((item) => {
+      const imgs = buildStripeProductImages(item.picture_url, checkoutOrigin);
+      const product_data = { name: item.title };
+      if (imgs && imgs.length) {
+        product_data.images = imgs;
+      }
+      return {
+        price_data: {
+          currency: 'brl',
+          product_data,
+          unit_amount: Math.round(Number(item.unit_price || 0) * 100), // Stripe usa centavos
         },
-        unit_amount: Math.round(Number(item.unit_price || 0) * 100), // Stripe usa centavos
-      },
-      quantity: Number(item.quantity || 1),
-    }));
+        quantity: Number(item.quantity || 1),
+      };
+    });
 
     let serverOrder = null;
     if (order) {
@@ -588,8 +754,8 @@ const handleCreateCheckoutSession = async (req, res) => {
       line_items: lineItems,
       mode: 'payment',
       customer_email: customer_email,
-      success_url: `${req.protocol}://${req.get('host')}?payment=success&session_id={CHECKOUT_SESSION_ID}&order_id=${serverOrder ? encodeURIComponent(serverOrder.id) : ''}`,
-      cancel_url: `${req.protocol}://${req.get('host')}?payment=cancel`,
+      success_url: `${checkoutOrigin}?payment=success&session_id={CHECKOUT_SESSION_ID}&order_id=${serverOrder ? encodeURIComponent(serverOrder.id) : ''}`,
+      cancel_url: `${checkoutOrigin}?payment=cancel`,
       client_reference_id: serverOrder ? serverOrder.id : undefined,
     };
 

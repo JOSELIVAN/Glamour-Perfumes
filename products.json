@@ -1,0 +1,114 @@
+[
+  {
+    "id": "vulcan-feu",
+    "nome": "Vulcan FEU",
+    "categoria": "Unisex",
+    "descricao": "O Vulcan Feu da French Avenue é um perfume unissex intenso e vibrante, que mistura notas frutadas tropicais com um fundo quente e amadeirado. Abre com manga, limão e gengibre, trazendo um toque doce e refrescante, evolui para um coração floral com jasmim e violeta, e finaliza com uma base envolvente de fava tonka, âmbar e madeiras.\n\nÉ uma fragrância marcante e moderna, ideal para quem quer se destacar, especialmente em noites ou ocasiões especiais.",
+    "preco": 299.99,
+    "imagens": [
+      "/img/VULCAN%20FEU.png",
+      "/img/VULCAN%20FEU-1.png"
+    ]
+  },
+  {
+    "id": "salvo-elixir",
+    "nome": "Salvo ELIXIR",
+    "categoria": "Masculino  ♂",
+    "descricao": "O Salvo Elixir da Maison Alhambra é um perfume masculino intenso e marcante, com uma fragrância especiada, amadeirada e levemente doce. Abre com notas vibrantes de pimenta, tabaco e toques frutados, evolui para um coração com patchouli, íris e café, e finaliza com uma base quente de baunilha, âmbar e madeiras.\n\nÉ uma fragrância sofisticada, com ótima projeção e fixação, ideal para noites e ocasiões especiais, transmitindo força e elegância.",
+    "preco": 199.98,
+    "imagens": [
+      "/img/SALVO%20ELIXIR.png",
+      "/img/SALVO%20ELIXIR-1.png"
+    ]
+  },
+  {
+    "id": "liquid-brun-frenck-aveneu",
+    "nome": "Liquid Brun FRENCK AVENEU",
+    "categoria": "Masculino  ♂",
+    "descricao": "O Liquid Brun de French Avenue é um perfume masculino sofisticado e envolvente, com uma fragrância doce, especiada e amadeirada. Abre com notas marcantes de canela, bergamota e cardamomo, evolui para um coração quente de baunilha e resinas, e finaliza com uma base intensa de pralinê, ambroxan, madeiras e almíscar.\n\nÉ conhecido por seu aroma quente e sensual, com ótima fixação, ideal para noites, clima frio e ocasiões especiais, transmitindo elegância e presença.",
+    "preco": 399.99,
+    "imagens": [
+      "/img/LIQUID%20BRUN%20FRENCH%20AVENEU.png",
+      "/img/LIQUID%20BRUN%20FRENCH%20AVENEU%201.png"
+    ]
+  },
+  {
+    "id": "lattafa-yara",
+    "nome": "Lattafa YARA",
+    "categoria": "Femenino ♀",
+    "descricao": "O Lattafa Yara é um perfume feminino doce e envolvente, com uma fragrância floral gourmand moderna. Abre com notas delicadas de orquídea, heliotrópio e tangerina, evolui para um coração cremoso com frutas tropicais e acorde gourmand, e finaliza com uma base quente de baunilha, almíscar e sândalo.\n\nÉ uma fragrância elegante, jovem e marcante, ideal para o dia a dia ou encontros, deixando um rastro doce e agradável.",
+    "preco": 199.99,
+    "imagens": [
+      "/img/LATTAFA%20YARA.jpg",
+      "/img/LATTAFA%20YARA-1.jpg"
+    ]
+  },
+  {
+    "id": "lattafa-the-kingdom",
+    "nome": "Lattafa The Kingdom",
+    "categoria": "Unisex",
+    "descricao": "O The Kingdom de Lattafa é um perfume marcante e sofisticado, com uma fragrância doce, aromática e levemente especiada. Abre com notas frescas de lavanda, hortelã e sálvia, evolui para um coração quente com baunilha e toques de tabaco, e finaliza com uma base envolvente de fava tonka e âmbar.\n\nÉ uma fragrância elegante e moderna, com boa fixação, ideal para noites e clima mais frio, transmitindo presença, conforto e sofisticação.",
+    "preco": 249.99,
+    "imagens": [
+      "/img/Lattafa%20The%20Kingdom.png",
+      "/img/Lattafa%20The%20Kingdom-1.png",
+      "/img/Lattafa%20The%20Kingdom-2.png"
+    ]
+  },
+  {
+    "id": "club-de-nuit-urban-elixir",
+    "nome": "Club de Nuit Urban Elixir",
+    "categoria": "MascMasculino  ♂",
+    "descricao": "O Club de Nuit Urban Man Elixir é um perfume masculino moderno e marcante, com uma fragrância cítrica, especiada e amadeirada. Ele abre com notas frescas de bergamota e pimenta rosa, evolui para um coração aromático com lavanda e especiarias, e finaliza com uma base quente de âmbar, patchouli e ambroxan, garantindo excelente fixação e projeção.  É uma opção versátil e sofisticada, ideal tanto para o dia a dia quanto para ocasiões especiais, transmitindo confiança e elegância.",
+    "preco": 230,
+    "imagens": [
+      "/img/CLUB%20DE%20NUIT%20ELIXIR-1.png",
+      "/img/CLUB%20DE%20NUIT%20ELIXIR.png",
+      "/img/CLUB%20DE%20NUIT%20ELIXIR-2.png"
+    ]
+  },
+  {
+    "id": "aurora",
+    "nome": "Aurora Eau de Parfum",
+    "descricao": "O Club de Nuit Maleka é um perfume feminino sofisticado e marcante, com uma fragrância floral frutada moderna e elegante. Abre com notas vibrantes de lichia, bergamota e pimenta rosa, evolui para um coração delicado de íris, e finaliza com uma base doce e envolvente de pralinê, sândalo e ambroxan.\nÉ uma fragrância doce na medida certa, com ótima fixação e presença, ideal para quem busca elegância e um aroma feminino que se destaca em qualquer ocasião.",
+    "preco": 260,
+    "imagens": [
+      "/img/CLUB%20DE%20NUIT%20MALEKA.jpeg",
+      "/img/CLUM%20DE%20NUIT%20MALEKA.png"
+    ],
+    "categoria": "Femenino ♀"
+  },
+  {
+    "id": "noir",
+    "nome": "Club de nuit Precieux",
+    "descricao": "O Club de Nuit Precieux é um perfume moderno e marcante, com uma fragrância frutada, cítrica e amadeirada. Abre com notas vibrantes de abacaxi, bergamota e pimenta, evolui para um coração elegante com madeiras, jasmim e musgo, e finaliza com uma base quente de âmbar, baunilha, couro e almíscar.\n\nÉ uma fragrância sofisticada, intensa e versátil, ideal para quem busca presença e elegância, principalmente em ocasiões especiais ou à noite.",
+    "preco": 350,
+    "imagens": [
+      "/img/CLUB%20DE%20NUIT%20PRECIEUX.png",
+      "/img/CLUB%20DE%20NUIT%20PRECIEUX-1.png"
+    ],
+    "categoria": "Masculino  ♂"
+  },
+  {
+    "id": "amour",
+    "nome": "HAWAS Black",
+    "descricao": "O Hawas Black é um perfume masculino moderno e marcante, que combina frescor frutado com um fundo amadeirado e âmbar. Abre com notas cítricas e frutadas como bergamota, abacaxi e toranja, evolui para um coração com patchouli, cedro e jasmim, e finaliza com uma base quente de âmbar, musgo e madeiras.\n\nÉ uma fragrância intensa, com ótima projeção e fixação, ideal para a noite ou ocasiões especiais, transmitindo elegância e presença.",
+    "preco": 250,
+    "imagens": [
+      "/img/HAWAS%20BLACK.jpg",
+      "/img/HAWAS%20BLACK-1.jpg"
+    ],
+    "categoria": "Masculino  ♂"
+  },
+  {
+    "id": "midnight",
+    "nome": "LATTAFA ATHEERI (ABELINHA)",
+    "descricao": "O Lattafa Atheeri (abelinha) é um perfume feminino delicado e encantador, com uma fragrância floral doce e levemente cremosa. Abre com um toque fresco e frutado de flor de maracujá e notas aquosas, evolui para um coração floral de orquídea e jasmim, e finaliza com uma base quente de baunilha e âmbar, trazendo uma sensação suave e envolvente.\n\nÉ conhecido por seu aroma doce na medida certa, elegante e confortável, ideal para o dia a dia e para quem gosta de perfumes femininos com toque de “mel” e",
+    "preco": 380,
+    "imagens": [
+      "/img/LATTAFA%20ATHEERI%20(ABELINHA).png",
+      "/img/LATTAFA%20ATHEERI%20(ABELINHA)-1.png"
+    ],
+    "categoria": "Femenino ♀"
+  }
+]
