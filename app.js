@@ -1,6 +1,11 @@
 const { useEffect, useState } = React;
 const h = React.createElement;
-const API_BASE = `${window.location.origin}/api`;
+
+// Detectar si estamos en desarrollo o producción
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_BASE = isLocalhost 
+  ? `${window.location.origin}/api`
+  : 'https://us-central1-glamour-perfumes.cloudfunctions.net/api';
 
 const produtosIniciais = [];
 

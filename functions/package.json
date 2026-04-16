@@ -1,0 +1,29 @@
+{
+  "name": "perfume-glamour-functions",
+  "description": "Firebase Functions para Perfume Glamour",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^5.0.0",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "stripe": "^14.17.0",
+    "nodemailer": "^8.0.5",
+    "twilio": "^4.23.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "firebase-functions-test": "^3.1.0"
+  }
+}

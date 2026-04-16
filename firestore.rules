@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===== PRODUCTOS (lectura pública) =====
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if false; // Solo por backend
+    }
+
+    // ===== ÓRDENES (lectura restringida) =====
+    match /orders/{orderId} {
+      allow read: if request.query.limit <= 100;
+      allow create: if request.resource.data.keys().hasAll(['cliente', 'itens', 'total', 'metodoPagamento']);
+      allow update: if resource.data.id == orderId;
+      allow delete: if false;
+    }
+
+    // ===== CATEGORÍAS (lectura pública) =====
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Por defecto denegar todo
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
