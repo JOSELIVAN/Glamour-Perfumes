@@ -899,7 +899,6 @@ app.post('/webhook', express.raw({ type: 'application/json' }), async (req, res)
     }
   }
 
-  res.json({ received: true });
 });
 
 // === ENDPOINTS DE GESTIÓN DE PEDIDOS ===
